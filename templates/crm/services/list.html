@@ -1,0 +1,955 @@
+<!-- templates/crm/services/list.html -->
+{% extends 'base.html' %}
+
+{% block title %}Услуги - {{ current_company.name }}{% endblock %}
+{% block page_title %}Каталог услуг{% endblock %}
+{% block page_icon %}cogs{% endblock %}
+
+{% block content %}
+<!-- Фильтры и поиск -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3" id="searchForm">
+            <div class="col-md-4">
+                <label for="search" class="form-label">Поиск</label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="{{ request.GET.search|default:'' }}" 
+                           placeholder="Название услуги">
+                </div>
+            </div>
+            
+            <div class="col-md-2">
+                <label for="status" class="form-label">Статус</label>
+                <select class="form-select" id="status" name="status" onchange="document.getElementById('searchForm').submit();">
+                    <option value="">Все</option>
+                    <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Активные</option>
+                    <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Неактивные</option>
+                </select>
+            </div>
+            
+            <div class="col-md-2">
+                <label for="price_from" class="form-label">Цена от</label>
+                <input type="number" class="form-control" id="price_from" name="price_from" 
+                       value="{{ request.GET.price_from|default:'' }}" step="0.01" min="0">
+            </div>
+            
+            <div class="col-md-2">
+                <label for="price_to" class="form-label">Цена до</label>
+                <input type="number" class="form-control" id="price_to" name="price_to" 
+                       value="{{ request.GET.price_to|default:'' }}" step="0.01" min="0">
+            </div>
+            
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="fas fa-search me-1"></i>Найти
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Заголовок с действиями -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-0">
+            Услуги 
+            <span class="badge bg-primary ms-2">{{ services.count }}</span>
+        </h4>
+        <small class="text-muted">
+            Активных: {{ active_services_count }} • 
+            Средняя цена: {{ average_price|floatformat:0 }}₽
+        </small>
+    </div>
+    <div>
+        <a href="{% url 'service_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Новая услуга
+        </a>
+        <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="fas fa-cog me-1"></i>Действия
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#" onclick="exportServices()">
+                    <i class="fas fa-file-export me-2"></i>Экспорт прайса
+                </a></li>
+                <li><a class="dropdown-item" href="#" onclick="importServices()">
+                    <i class="fas fa-file-import me-2"></i>Импорт услуг
+                </a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="#" onclick="bulkPriceUpdate()">
+                    <i class="fas fa-edit me-2"></i>Массовое изменение цен
+                </a></li>
+                <li><a class="dropdown-item" href="#" onclick="duplicateServices()">
+                    <i class="fas fa-copy me-2"></i>Дублировать услуги
+                </a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Переключение вида -->
+<div class="mb-3">
+    <div class="btn-group" role="group">
+        <input type="radio" class="btn-check" name="viewMode" id="cardView" checked>
+        <label class="btn btn-outline-primary" for="cardView">
+            <i class="fas fa-th-large me-1"></i>Карточки
+        </label>
+        
+        <input type="radio" class="btn-check" name="viewMode" id="tableView">
+        <label class="btn btn-outline-primary" for="tableView">
+            <i class="fas fa-list me-1"></i>Таблица
+        </label>
+        
+        <input type="radio" class="btn-check" name="viewMode" id="priceListView">
+        <label class="btn btn-outline-primary" for="priceListView">
+            <i class="fas fa-receipt me-1"></i>Прайс-лист
+        </label>
+    </div>
+</div>
+
+<!-- Карточки услуг -->
+<div id="cardViewContent">
+    {% if services %}
+    <div class="row">
+        {% for service in services %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 service-card {% if not service.is_active %}opacity-75{% endif %}" 
+                 onclick="location.href='{% url 'service_edit' service.id %}'" style="cursor: pointer;">
+                <div class="card-body">
+                    <div class="d-flex align-items-start mb-3">
+                        <div class="service-icon me-3 flex-shrink-0">
+                            <i class="fas fa-cog"></i>
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <h6 class="card-title mb-1 text-truncate">{{ service.name }}</h6>
+                            {% if not service.is_active %}
+                            <span class="badge bg-secondary mb-2">Неактивна</span>
+                            {% else %}
+                            <span class="badge bg-success mb-2">Активна</span>
+                            {% endif %}
+                        </div>
+                        <div class="dropdown" onclick="event.stopPropagation();">
+                            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'service_edit' service.id %}">
+                                    <i class="fas fa-edit me-2"></i>Редактировать
+                                </a></li>
+                                <li><a class="dropdown-item" href="#" onclick="duplicateService({{ service.id }})">
+                                    <i class="fas fa-copy me-2"></i>Дублировать
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                {% if service.is_active %}
+                                <li><a class="dropdown-item text-warning" href="#" onclick="toggleServiceStatus({{ service.id }}, false)">
+                                    <i class="fas fa-pause me-2"></i>Деактивировать
+                                </a></li>
+                                {% else %}
+                                <li><a class="dropdown-item text-success" href="#" onclick="toggleServiceStatus({{ service.id }}, true)">
+                                    <i class="fas fa-play me-2"></i>Активировать
+                                </a></li>
+                                {% endif %}
+                                <li><a class="dropdown-item text-danger" href="#" onclick="deleteService({{ service.id }})">
+                                    <i class="fas fa-trash me-2"></i>Удалить
+                                </a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    {% if service.description %}
+                    <p class="card-text text-muted small mb-3" style="height: 40px; overflow: hidden;">
+                        {{ service.description|truncatechars:100 }}
+                    </p>
+                    {% else %}
+                    <p class="card-text text-muted small mb-3 fst-italic" style="height: 40px;">
+                        Описание не указано
+                    </p>
+                    {% endif %}
+                    
+                    <div class="row text-center">
+                        <div class="col-6 border-end">
+                            <h5 class="text-primary mb-0">{{ service.base_price|floatformat:0 }}₽</h5>
+                            <small class="text-muted">за {{ service.unit }}</small>
+                        </div>
+                        <div class="col-6">
+                            <h6 class="text-info mb-0">{{ service.order_services.count }}</h6>
+                            <small class="text-muted">заказов</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-transparent">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="fas fa-calendar me-1"></i>
+                            {{ service.created_at|date:"d.m.Y" }}
+                        </small>
+                        {% if service.order_services.exists %}
+                        <small class="text-muted">
+                            Последний: {{ service.order_services.last.order.order_date|timesince }} назад
+                        </small>
+                        {% else %}
+                        <small class="text-warning">Не использовалась</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-cogs fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">Услуги не найдены</h5>
+            <p class="text-muted">Добавьте первую услугу для начала работы</p>
+            <a href="{% url 'service_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Добавить услугу
+            </a>
+        </div>
+    </div>
+    {% endif %}
+ </div>
+ 
+ <!-- Табличный вид -->
+ <div id="tableViewContent" style="display: none;">
+    {% if services %}
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>
+                            <input type="checkbox" id="selectAll" onchange="toggleAllServices()">
+                        </th>
+                        <th>Услуга</th>
+                        <th>Описание</th>
+                        <th width="120">Цена</th>
+                        <th width="80">Единица</th>
+                        <th width="100">Использований</th>
+                        <th width="100">Статус</th>
+                        <th width="100">Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for service in services %}
+                    <tr class="{% if not service.is_active %}table-secondary{% endif %}" 
+                        onclick="location.href='{% url 'service_edit' service.id %}'" style="cursor: pointer;">
+                        <td onclick="event.stopPropagation();">
+                            <input type="checkbox" class="service-checkbox" value="{{ service.id }}">
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="service-icon me-3">
+                                    <i class="fas fa-cog"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">{{ service.name }}</h6>
+                                    <small class="text-muted">
+                                        Создана {{ service.created_at|date:"d.m.Y" }}
+                                    </small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="text-truncate" style="max-width: 250px;" title="{{ service.description }}">
+                                {{ service.description|default:"—" }}
+                            </div>
+                        </td>
+                        <td>
+                            <strong class="text-primary">{{ service.base_price|floatformat:0 }}₽</strong>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark">{{ service.unit }}</span>
+                        </td>
+                        <td class="text-center">
+                            <strong class="text-info">{{ service.order_services.count }}</strong>
+                        </td>
+                        <td>
+                            {% if service.is_active %}
+                            <span class="badge bg-success">Активна</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Неактивна</span>
+                            {% endif %}
+                        </td>
+                        <td onclick="event.stopPropagation();">
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" 
+                                        data-bs-toggle="dropdown">
+                                    <i class="fas fa-cog"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{% url 'service_edit' service.id %}">
+                                        <i class="fas fa-edit me-2"></i>Редактировать
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="duplicateService({{ service.id }})">
+                                        <i class="fas fa-copy me-2"></i>Дублировать
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    {% if service.is_active %}
+                                    <li><a class="dropdown-item text-warning" href="#" onclick="toggleServiceStatus({{ service.id }}, false)">
+                                        <i class="fas fa-pause me-2"></i>Деактивировать
+                                    </a></li>
+                                    {% else %}
+                                    <li><a class="dropdown-item text-success" href="#" onclick="toggleServiceStatus({{ service.id }}, true)">
+                                        <i class="fas fa-play me-2"></i>Активировать
+                                    </a></li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Массовые действия -->
+    <div class="card mt-3" id="bulkActionsCard" style="display: none;">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <span>Выбрано: <strong id="selectedCount">0</strong> услуг</span>
+                <div>
+                    <button class="btn btn-outline-success btn-sm" onclick="bulkActivate()">
+                        <i class="fas fa-play me-1"></i>Активировать
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm" onclick="bulkDeactivate()">
+                        <i class="fas fa-pause me-1"></i>Деактивировать
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" onclick="bulkPriceUpdate()">
+                        <i class="fas fa-edit me-1"></i>Изменить цены
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="bulkDelete()">
+                        <i class="fas fa-trash me-1"></i>Удалить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+ </div>
+ 
+ <!-- Прайс-лист -->
+ <div id="priceListViewContent" style="display: none;">
+    {% if services %}
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-receipt me-2"></i>Прайс-лист {{ current_company.name }}
+            </h5>
+            <div>
+                <button class="btn btn-outline-primary btn-sm" onclick="printPriceList()">
+                    <i class="fas fa-print me-1"></i>Печать
+                </button>
+                <button class="btn btn-outline-success btn-sm" onclick="exportPriceList()">
+                    <i class="fas fa-file-excel me-1"></i>Excel
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <h6>{{ current_company.name }}</h6>
+                    {% if current_company.address %}
+                    <small class="text-muted">{{ current_company.address }}</small><br>
+                    {% endif %}
+                    {% if current_company.phone %}
+                    <small class="text-muted">Тел: {{ current_company.phone }}</small><br>
+                    {% endif %}
+                    {% if current_company.email %}
+                    <small class="text-muted">Email: {{ current_company.email }}</small>
+                    {% endif %}
+                </div>
+                <div class="col-md-6 text-end">
+                    <h6>Прайс-лист</h6>
+                    <small class="text-muted">Действует с {{ "now"|date:"d.m.Y" }}</small>
+                </div>
+            </div>
+            
+            <table class="table table-bordered">
+                <thead class="table-primary">
+                    <tr>
+                        <th width="60">№</th>
+                        <th>Наименование услуги</th>
+                        <th>Описание</th>
+                        <th width="100">Единица</th>
+                        <th width="120">Цена</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for service in services %}
+                    {% if service.is_active %}
+                    <tr>
+                        <td class="text-center">{{ forloop.counter }}</td>
+                        <td><strong>{{ service.name }}</strong></td>
+                        <td>{{ service.description|default:"—" }}</td>
+                        <td class="text-center">{{ service.unit }}</td>
+                        <td class="text-end"><strong>{{ service.base_price|floatformat:2 }} ₽</strong></td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <h6>Примечания:</h6>
+                    <ul class="small text-muted">
+                        <li>Цены указаны без учета НДС</li>
+                        <li>Окончательная стоимость зависит от объема работ</li>
+                        <li>Возможны индивидуальные скидки</li>
+                    </ul>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p class="small text-muted mb-0">
+                        Всего услуг: {{ active_services_count }}<br>
+                        Средняя цена: {{ average_price|floatformat:0 }} ₽<br>
+                        Обновлено: {{ "now"|date:"d.m.Y H:i" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+ </div>
+ 
+ <!-- Модальное окно массового изменения цен -->
+ <div class="modal fade" id="bulkPriceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Массовое изменение цен</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="bulkPriceForm">
+                    <div class="mb-3">
+                        <label for="priceChangeType" class="form-label">Тип изменения</label>
+                        <select class="form-select" id="priceChangeType" required>
+                            <option value="increase_percent">Увеличить на %</option>
+                            <option value="decrease_percent">Уменьшить на %</option>
+                            <option value="multiply">Умножить на коэффициент</option>
+                            <option value="round">Округлить до ближайшего</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="priceValue" class="form-label">Значение</label>
+                        <input type="number" class="form-control" id="priceValue" 
+                               step="0.01" min="0" required>
+                        <div class="form-text">
+                            Для процентов: 10 = 10%, для коэффициента: 1.5 = +50%
+                        </div>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="roundPrices" checked>
+                        <label class="form-check-label" for="roundPrices">
+                            Округлить результат до целых
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="applyBulkPriceChanges()">
+                    Применить изменения
+                </button>
+            </div>
+        </div>
+    </div>
+ </div>
+ 
+ <!-- Модальное окно импорта -->
+ <div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Импорт услуг</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="importForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="importFile" class="form-label">Файл Excel или CSV</label>
+                        <input type="file" class="form-control" id="importFile" 
+                               accept=".xlsx,.xls,.csv" required>
+                        <div class="form-text">
+                            Формат: Название, Описание, Цена, Единица измерения
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="updateExisting">
+                            <label class="form-check-label" for="updateExisting">
+                                Обновлять существующие услуги
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <small>
+                            <a href="/static/templates/services_template.xlsx" download>
+                                Скачать шаблон файла
+                            </a>
+                        </small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="uploadImportFile()">
+                    Импортировать
+                </button>
+            </div>
+        </div>
+    </div>
+ </div>
+ {% endblock %}
+ 
+ {% block extra_css %}
+ <style>
+ .service-card {
+    transition: all 0.3s ease;
+    border-left: 4px solid #e9ecef;
+ }
+ 
+ .service-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+    border-left-color: #667eea;
+ }
+ 
+ .service-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+ }
+ 
+ .min-w-0 {
+    min-width: 0;
+ }
+ 
+ @media print {
+    #priceListViewContent .card-header button,
+    .sidebar, .navbar, .btn, .dropdown { 
+        display: none !important; 
+    }
+    
+    .main-content { 
+        margin-left: 0 !important; 
+    }
+    
+    .card { 
+        border: 1px solid #000 !important; 
+        box-shadow: none !important; 
+    }
+ }
+ </style>
+ {% endblock %}
+ 
+ {% block extra_js %}
+ <script>
+ // Переключение видов
+ document.getElementById('cardView').addEventListener('change', function() {
+    if (this.checked) {
+        document.getElementById('cardViewContent').style.display = 'block';
+        document.getElementById('tableViewContent').style.display = 'none';
+        document.getElementById('priceListViewContent').style.display = 'none';
+    }
+ });
+ 
+ document.getElementById('tableView').addEventListener('change', function() {
+    if (this.checked) {
+        document.getElementById('cardViewContent').style.display = 'none';
+        document.getElementById('tableViewContent').style.display = 'block';
+        document.getElementById('priceListViewContent').style.display = 'none';
+    }
+ });
+ 
+ document.getElementById('priceListView').addEventListener('change', function() {
+    if (this.checked) {
+        document.getElementById('cardViewContent').style.display = 'none';
+        document.getElementById('tableViewContent').style.display = 'none';
+        document.getElementById('priceListViewContent').style.display = 'block';
+    }
+ });
+ 
+ // Живой поиск
+ let searchTimeout;
+ document.getElementById('search').addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        document.getElementById('searchForm').submit();
+    }, 1000);
+ });
+ 
+ // Автоотправка при изменении цен
+ document.getElementById('price_from').addEventListener('change', function() {
+    document.getElementById('searchForm').submit();
+ });
+ 
+ document.getElementById('price_to').addEventListener('change', function() {
+    document.getElementById('searchForm').submit();
+ });
+ 
+ // Выбор услуг в таблице
+ function toggleAllServices() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.service-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+    
+    updateBulkActions();
+ }
+ 
+ // Обновление панели массовых действий
+ function updateBulkActions() {
+    const checkedBoxes = document.querySelectorAll('.service-checkbox:checked');
+    const bulkCard = document.getElementById('bulkActionsCard');
+    const selectedCount = document.getElementById('selectedCount');
+    
+    if (checkedBoxes.length > 0) {
+        bulkCard.style.display = 'block';
+        selectedCount.textContent = checkedBoxes.length;
+    } else {
+        bulkCard.style.display = 'none';
+    }
+ }
+ 
+ // Обработчики для чекбоксов
+ document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('service-checkbox')) {
+        updateBulkActions();
+    }
+ });
+ 
+ // Изменение статуса услуги
+ function toggleServiceStatus(serviceId, status) {
+    const action = status ? 'активировать' : 'деактивировать';
+    
+    if (confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} услугу?`)) {
+        fetch(`/api/services/${serviceId}/toggle-status/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({status: status})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Ошибка при изменении статуса: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка при изменении статуса');
+        });
+    }
+ }
+ 
+ // Дублирование услуги
+ function duplicateService(serviceId) {
+    if (confirm('Создать копию услуги?')) {
+        fetch(`/api/services/${serviceId}/duplicate/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Услуга продублирована');
+                location.reload();
+            } else {
+                alert('Ошибка при дублировании: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка при дублировании');
+        });
+    }
+ }
+ 
+ // Удаление услуги
+ function deleteService(serviceId) {
+    if (confirm('Удалить услугу? Это действие необратимо.')) {
+        fetch(`/api/services/${serviceId}/delete/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': csrftoken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Ошибка при удалении: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка при удалении');
+        });
+    }
+ }
+ 
+ // Массовые действия
+ function bulkActivate() {
+    const selected = getSelectedServices();
+    if (selected.length === 0) return;
+    
+    if (confirm(`Активировать ${selected.length} услуг?`)) {
+        bulkAction('activate', selected);
+    }
+ }
+ 
+ function bulkDeactivate() {
+    const selected = getSelectedServices();
+    if (selected.length === 0) return;
+    
+    if (confirm(`Деактивировать ${selected.length} услуг?`)) {
+        bulkAction('deactivate', selected);
+    }
+ }
+ 
+ function bulkDelete() {
+    const selected = getSelectedServices();
+    if (selected.length === 0) return;
+    
+    if (confirm(`Удалить ${selected.length} услуг? Это действие необратимо.`)) {
+        bulkAction('delete', selected);
+    }
+ }
+ 
+ function getSelectedServices() {
+    const checkboxes = document.querySelectorAll('.service-checkbox:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+ }
+ 
+ function bulkAction(action, serviceIds) {
+    fetch('/api/services/bulk-action/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({
+            action: action,
+            service_ids: serviceIds
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Обработано услуг: ${data.processed_count}`);
+            location.reload();
+        } else {
+            alert('Ошибка при выполнении действия: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Ошибка при выполнении действия');
+    });
+ }
+ 
+ // Массовое изменение цен
+ function bulkPriceUpdate() {
+    const modal = new bootstrap.Modal(document.getElementById('bulkPriceModal'));
+    modal.show();
+ }
+ 
+ function applyBulkPriceChanges() {
+    const selected = getSelectedServices();
+    if (selected.length === 0) {
+        alert('Выберите услуги для изменения цен');
+        return;
+    }
+    
+    const changeType = document.getElementById('priceChangeType').value;
+    const value = parseFloat(document.getElementById('priceValue').value);
+    const roundPrices = document.getElementById('roundPrices').checked;
+    
+    if (!value || value <= 0) {
+        alert('Введите корректное значение');
+        return;
+    }
+    
+    fetch('/api/services/bulk-price-update/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({
+            service_ids: selected,
+            change_type: changeType,
+            value: value,
+            round_prices: roundPrices
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Обновлено услуг: ${data.updated_count}`);
+            location.reload();
+        } else {
+            alert('Ошибка при обновлении цен: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Ошибка при обновлении цен');
+    });
+    
+    bootstrap.Modal.getInstance(document.getElementById('bulkPriceModal')).hide();
+ }
+ 
+ // Экспорт и импорт
+ function exportServices() {
+    const params = new URLSearchParams(window.location.search);
+    params.set('export', 'excel');
+    window.open(`${window.location.pathname}?${params.toString()}`, '_blank');
+ }
+ 
+ function exportPriceList() {
+    window.open('/api/services/price-list/?format=excel', '_blank');
+ }
+ 
+ function printPriceList() {
+    // Переключаемся на прайс-лист и печатаем
+    document.getElementById('priceListView').checked = true;
+    document.getElementById('priceListView').dispatchEvent(new Event('change'));
+    
+    setTimeout(() => {
+        window.print();
+    }, 500);
+ }
+ 
+ function importServices() {
+    const modal = new bootstrap.Modal(document.getElementById('importModal'));
+    modal.show();
+ }
+ 
+ function uploadImportFile() {
+    const fileInput = document.getElementById('importFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('Выберите файл для импорта');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('update_existing', document.getElementById('updateExisting').checked);
+    formData.append('csrfmiddlewaretoken', csrftoken);
+    
+    fetch('/api/services/import/', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Импортировано услуг: ${data.imported_count}`);
+            location.reload();
+        } else {
+            alert('Ошибка при импорте: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Ошибка при импорте');
+    });
+    
+    bootstrap.Modal.getInstance(document.getElementById('importModal')).hide();
+ }
+ 
+ // Запоминаем выбранный вид
+ const savedView = localStorage.getItem('servicesView');
+ if (savedView) {
+    document.getElementById(savedView).checked = true;
+    document.getElementById(savedView).dispatchEvent(new Event('change'));
+ }
+ 
+ document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        localStorage.setItem('servicesView', this.id);
+    });
+ });
+ 
+ // Горячие клавиши
+document.addEventListener('keydown', function(e) {
+   // Ctrl+N - новая услуга
+   if (e.ctrlKey && e.key === 'n') {
+       e.preventDefault();
+       window.location.href = '{% url "service_create" %}';
+   }
+   
+   // Ctrl+P - печать прайс-листа
+   if (e.ctrlKey && e.key === 'p') {
+       e.preventDefault();
+       printPriceList();
+   }
+   
+   // Ctrl+E - экспорт
+   if (e.ctrlKey && e.key === 'e') {
+       e.preventDefault();
+       exportServices();
+   }
+   
+   // F2 - переключение вида
+   if (e.key === 'F2') {
+       e.preventDefault();
+       const views = ['cardView', 'tableView', 'priceListView'];
+       const current = views.find(v => document.getElementById(v).checked);
+       const currentIndex = views.indexOf(current);
+       const nextIndex = (currentIndex + 1) % views.length;
+       
+       document.getElementById(views[nextIndex]).checked = true;
+       document.getElementById(views[nextIndex]).dispatchEvent(new Event('change'));
+   }
+});
+
+// Анимация загрузки карточек
+document.addEventListener('DOMContentLoaded', function() {
+   const cards = document.querySelectorAll('.service-card');
+   cards.forEach((card, index) => {
+       card.style.opacity = '0';
+       card.style.transform = 'translateY(20px)';
+       
+       setTimeout(() => {
+           card.style.transition = 'all 0.5s ease';
+           card.style.opacity = '1';
+           card.style.transform = 'translateY(0)';
+       }, index * 100);
+   });
+});
+</script>
+{% endblock %}

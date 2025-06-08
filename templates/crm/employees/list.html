@@ -1,0 +1,521 @@
+<!-- templates/crm/employees/list.html -->
+{% extends 'base.html' %}
+
+{% block title %}Сотрудники - {{ current_company.name }}{% endblock %}
+{% block page_title %}Управление сотрудниками{% endblock %}
+{% block page_icon %}user-tie{% endblock %}
+
+{% block content %}
+<!-- Фильтры -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3" id="filterForm">
+            <div class="col-md-3">
+                <label for="role" class="form-label">Роль</label>
+                <select class="form-select" id="role" name="role" onchange="document.getElementById('filterForm').submit();">
+                    <option value="">Все роли</option>
+                    {% for role_code, role_name in role_choices %}
+                    <option value="{{ role_code }}" {% if role_code == request.GET.role %}selected{% endif %}>
+                        {{ role_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="status" class="form-label">Статус</label>
+                <select class="form-select" id="status" name="status" onchange="document.getElementById('filterForm').submit();">
+                    <option value="">Все</option>
+                    <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Активные</option>
+                    <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Неактивные</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="search" class="form-label">Поиск</label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="{{ request.GET.search|default:'' }}" 
+                           placeholder="Имя или email">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="fas fa-search me-1"></i>Найти
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Заголовок с действиями -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-0">
+            Сотрудники 
+            <span class="badge bg-primary ms-2">{{ employees.count }}</span>
+        </h4>
+        <small class="text-muted">Управление командой</small>
+    </div>
+    <div>
+        <a href="{% url 'employee_create' %}" class="btn btn-primary">
+            <i class="fas fa-user-plus me-2"></i>Добавить сотрудника
+        </a>
+        <div class="btn-group">
+            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="fas fa-cog me-1"></i>Действия
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{% url 'salary_calculate' %}">
+                    <i class="fas fa-calculator me-2"></i>Рассчитать ЗП всем
+                </a></li>
+                <li><a class="dropdown-item" href="#" onclick="exportEmployees()">
+                    <i class="fas fa-file-export me-2"></i>Экспорт списка
+                </a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="#" onclick="bulkSalaryUpdate()">
+                    <i class="fas fa-edit me-2"></i>Массовое изменение ЗП
+                </a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Статистика по ролям -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-crown fa-2x text-warning mb-2"></i>
+                <h4 class="text-primary">{{ owners_count }}</h4>
+                <small class="text-muted">Владельцев</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-user-cog fa-2x text-info mb-2"></i>
+                <h4 class="text-primary">{{ managers_count }}</h4>
+                <small class="text-muted">Менеджеров</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-users fa-2x text-success mb-2"></i>
+                <h4 class="text-primary">{{ executors_count }}</h4>
+                <small class="text-muted">Исполнителей</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <i class="fas fa-money-bill-wave fa-2x text-warning mb-2"></i>
+                <h4 class="text-success">{{ total_salary|floatformat:0 }}₽</h4>
+                <small class="text-muted">Общий ФОТ</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Список сотрудников -->
+{% if employees %}
+<div class="row">
+    {% for employee in employees %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100 employee-card" onclick="location.href='{% url 'employee_detail' employee.id %}'" style="cursor: pointer;">
+            <div class="card-body">
+                <div class="d-flex align-items-start mb-3">
+                    <div class="position-relative">
+                        <div class="company-logo me-3 flex-shrink-0">
+                            {{ employee.user.first_name|first|upper }}
+                        </div>
+                        {% if not employee.is_active %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            <i class="fas fa-ban" style="font-size: 8px;"></i>
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                        <h6 class="card-title mb-1">{{ employee.user.get_full_name }}</h6>
+                        <span class="badge bg-{% if employee.role == 'owner' %}warning{% elif employee.role == 'manager' %}info{% elif employee.role == 'executor' %}success{% else %}secondary{% endif %} mb-2">
+                            {{ employee.get_role_display }}
+                        </span>
+                        {% if not employee.is_active %}
+                        <span class="badge bg-danger">Неактивен</span>
+                        {% endif %}
+                    </div>
+                    <div class="dropdown" onclick="event.stopPropagation();">
+                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'employee_detail' employee.id %}">
+                                <i class="fas fa-eye me-2"></i>Просмотр
+                            </a></li>
+                            <li><a class="dropdown-item" href="{% url 'employee_edit' employee.id %}">
+                                <i class="fas fa-edit me-2"></i>Редактировать
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="calculateSalary({{ employee.id }})">
+                                <i class="fas fa-calculator me-2"></i>Рассчитать ЗП
+                            </a></li>
+                            {% if employee.is_active %}
+                            <li><a class="dropdown-item text-warning" href="#" onclick="deactivateEmployee({{ employee.id }})">
+                                <i class="fas fa-pause me-2"></i>Деактивировать
+                            </a></li>
+                            {% else %}
+                            <li><a class="dropdown-item text-success" href="#" onclick="activateEmployee({{ employee.id }})">
+                                <i class="fas fa-play me-2"></i>Активировать
+                            </a></li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    {% if employee.user.email %}
+                    <div class="mb-1">
+                        <i class="fas fa-envelope text-muted me-2"></i>
+                        <small class="text-truncate d-inline-block" style="max-width: 180px;">
+                            {{ employee.user.email }}
+                        </small>
+                    </div>
+                    {% endif %}
+                    
+                    {% if employee.user.phone %}
+                    <div class="mb-1">
+                        <i class="fas fa-phone text-muted me-2"></i>
+                        <small>{{ employee.user.phone }}</small>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-1">
+                        <i class="fas fa-calendar text-muted me-2"></i>
+                        <small class="text-muted">
+                            В команде с {{ employee.joined_at|date:"d.m.Y" }}
+                        </small>
+                    </div>
+                </div>
+                
+                <div class="row text-center">
+                    <div class="col-6 border-end">
+                        <h6 class="text-primary mb-0">{{ employee.salary_rate|floatformat:0 }}₽</h6>
+                        <small class="text-muted">Оклад</small>
+                    </div>
+                    <div class="col-6">
+                        <h6 class="text-success mb-0">{{ employee.commission_rate }}%</h6>
+                        <small class="text-muted">Комиссия</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-footer bg-transparent">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <small class="text-muted">Заказов</small><br>
+                        <strong class="text-info">{{ employee.user.executor_orders.count }}</strong>
+                    </div>
+                    <div class="col-4">
+                        <small class="text-muted">Завершено</small><br>
+                        <strong class="text-success">{{ employee.user.executor_orders.filter.status='completed'.count }}</strong>
+                    </div>
+                    <div class="col-4">
+                        <small class="text-muted">Рейтинг</small><br>
+                        <div class="rating">
+                            {% for i in "12345" %}
+                            <i class="fas fa-star {% if forloop.counter <= employee.rating %}text-warning{% else %}text-muted{% endif %}"></i>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">Сотрудники не найдены</h5>
+        <p class="text-muted">Добавьте первого сотрудника для начала работы</p>
+        <a href="{% url 'employee_create' %}" class="btn btn-primary">
+            <i class="fas fa-user-plus me-2"></i>Добавить сотрудника
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Модальное окно массового изменения зарплат -->
+<div class="modal fade" id="bulkSalaryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Массовое изменение зарплат</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="bulkSalaryForm">
+                    <div class="mb-3">
+                        <label for="bulkRole" class="form-label">Роль</label>
+                        <select class="form-select" id="bulkRole" required>
+                            <option value="">Выберите роль</option>
+                            <option value="manager">Менеджеры</option>
+                            <option value="executor">Исполнители</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="adjustmentType" class="form-label">Тип изменения</label>
+                        <select class="form-select" id="adjustmentType" required>
+                            <option value="increase_percent">Увеличить на %</option>
+                            <option value="decrease_percent">Уменьшить на %</option>
+                            <option value="set_amount">Установить сумму</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="adjustmentValue" class="form-label">Значение</label>
+                        <input type="number" class="form-control" id="adjustmentValue" 
+                               step="0.01" min="0" required>
+                    </div>
+                    
+                    <div class="form-text">
+                        Изменения будут применены ко всем сотрудникам выбранной роли
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="applyBulkSalaryChanges()">
+                    Применить изменения
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.employee-card {
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+}
+
+.employee-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+}
+
+.employee-card[data-role="owner"] {
+    border-left-color: #f59e0b;
+}
+
+.employee-card[data-role="manager"] {
+    border-left-color: #3b82f6;
+}
+
+.employee-card[data-role="executor"] {
+    border-left-color: #10b981;
+}
+
+.rating .fa-star {
+    font-size: 12px;
+}
+
+.min-w-0 {
+    min-width: 0;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Добавляем атрибуты ролей к карточкам
+document.querySelectorAll('.employee-card').forEach(card => {
+    const badge = card.querySelector('.badge');
+    if (badge) {
+        const role = badge.textContent.toLowerCase();
+        if (role.includes('владелец')) card.setAttribute('data-role', 'owner');
+        else if (role.includes('менеджер')) card.setAttribute('data-role', 'manager');
+        else if (role.includes('исполнитель')) card.setAttribute('data-role', 'executor');
+    }
+});
+
+// Живой поиск
+let searchTimeout;
+document.getElementById('search').addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        document.getElementById('filterForm').submit();
+    }, 1000);
+});
+
+// Расчет зарплаты для сотрудника
+function calculateSalary(employeeId) {
+    if (confirm('Рассчитать зарплату сотрудника за текущий месяц?')) {
+        fetch(`/api/employees/${employeeId}/calculate-salary/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Зарплата рассчитана: ${data.amount}₽`);
+            } else {
+                alert('Ошибка при расчете зарплаты: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка при расчете зарплаты');
+        });
+    }
+}
+
+// Деактивация сотрудника
+function deactivateEmployee(employeeId) {
+    if (confirm('Деактивировать сотрудника? Он не сможет войти в систему.')) {
+        fetch(`/api/employees/${employeeId}/deactivate/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Ошибка при деактивации: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка при деактивации');
+        });
+    }
+}
+
+// Активация сотрудника
+function activateEmployee(employeeId) {
+    if (confirm('Активировать сотрудника?')) {
+        fetch(`/api/employees/${employeeId}/activate/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Ошибка при активации: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка при активации');
+        });
+    }
+}
+
+// Экспорт списка сотрудников
+function exportEmployees() {
+    const params = new URLSearchParams(window.location.search);
+    params.set('export', 'excel');
+    window.open(`${window.location.pathname}?${params.toString()}`, '_blank');
+}
+
+// Массовое изменение зарплат
+function bulkSalaryUpdate() {
+    const modal = new bootstrap.Modal(document.getElementById('bulkSalaryModal'));
+    modal.show();
+}
+
+function applyBulkSalaryChanges() {
+    const role = document.getElementById('bulkRole').value;
+    const type = document.getElementById('adjustmentType').value;
+    const value = document.getElementById('adjustmentValue').value;
+    
+    if (!role || !type || !value) {
+        alert('Заполните все поля');
+        return;
+    }
+    
+    if (confirm(`Применить изменения ко всем сотрудникам роли "${role}"?`)) {
+        fetch('/api/employees/bulk-salary-update/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({
+                role: role,
+                adjustment_type: type,
+                value: parseFloat(value)
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Обновлено сотрудников: ${data.updated_count}`);
+                location.reload();
+            } else {
+                alert('Ошибка при обновлении: ' + (data.error || 'Неизвестная ошибка'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка при обновлении');
+        });
+        
+        bootstrap.Modal.getInstance(document.getElementById('bulkSalaryModal')).hide();
+    }
+}
+
+// Анимация загрузки карточек
+document.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('.employee-card');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.5s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
+
+// Горячие клавиши
+document.addEventListener('keydown', function(e) {
+    // Ctrl+N - добавить сотрудника
+    if (e.ctrlKey && e.key === 'n') {
+        e.preventDefault();
+        window.location.href = '{% url "employee_create" %}';
+    }
+    
+    // Ctrl+S - рассчитать ЗП всем
+    if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        if (confirm('Рассчитать зарплату всем сотрудникам?')) {
+            window.location.href = '{% url "salary_calculate" %}';
+        }
+    }
+});
+</script>
+{% endblock %}

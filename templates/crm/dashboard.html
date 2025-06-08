@@ -1,0 +1,375 @@
+<!-- templates/crm/dashboard.html -->
+{% extends 'base.html' %}
+
+{% block title %}Главная - {{ current_company.name }}{% endblock %}
+{% block page_title %}Главная страница{% endblock %}
+{% block page_icon %}tachometer-alt{% endblock %}
+
+{% block content %}
+<!-- Статистические карточки -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card">
+            <div class="card-body text-center position-relative">
+                <i class="fas fa-users fa-2x mb-2"></i>
+                <h3 class="mb-1">{{ stats.total_clients }}</h3>
+                <small>Всего клиентов</small>
+                <div class="position-absolute bottom-0 end-0 p-2">
+                    <i class="fas fa-arrow-up text-success"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card success">
+            <div class="card-body text-center position-relative">
+                <i class="fas fa-shopping-cart fa-2x mb-2"></i>
+                <h3 class="mb-1">{{ stats.active_orders }}</h3>
+                <small>Активные заказы</small>
+                {% if stats.active_orders > 0 %}
+                <div class="position-absolute bottom-0 end-0 p-2">
+                    <span class="badge bg-light text-dark">{{ stats.new_orders }} новых</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    {% if is_manager %}
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card warning">
+            <div class="card-body text-center position-relative">
+                <i class="fas fa-money-bill-wave fa-2x mb-2"></i>
+                <h3 class="mb-1">{{ stats.month_revenue|floatformat:0 }}₽</h3>
+                <small>Доход за месяц</small>
+                <div class="position-absolute bottom-0 start-0 p-2">
+                    <small><i class="fas fa-calendar me-1"></i>{{ "now"|date:"m.Y" }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card info">
+            <div class="card-body text-center position-relative">
+                <i class="fas fa-user-tie fa-2x mb-2"></i>
+                <h3 class="mb-1">{{ stats.employees_count }}</h3>
+                <small>Сотрудников</small>
+                {% if is_owner %}
+                <div class="position-absolute bottom-0 end-0 p-2">
+                    <a href="{% url 'employees_list' %}" class="text-decoration-none">
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="row">
+    <!-- График доходов -->
+    {% if is_manager %}
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Доходы за последние 6 месяцев
+                </h5>
+                <div class="btn-group" role="group">
+                    <input type="radio" class="btn-check" name="chartPeriod" id="chart6months" checked>
+                    <label class="btn btn-outline-primary btn-sm" for="chart6months">6 мес</label>
+                    
+                    <input type="radio" class="btn-check" name="chartPeriod" id="chart12months">
+                    <label class="btn btn-outline-primary btn-sm" for="chart12months">1 год</label>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="revenueChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-tasks me-2"></i>Мои задачи
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 text-center">
+                        <div class="border rounded p-3 mb-2">
+                            <h4 class="text-primary">{{ stats.my_active_orders }}</h4>
+                            <small class="text-muted">Активных заказов</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="border rounded p-3 mb-2">
+                            <h4 class="text-success">{{ stats.my_completed_month }}</h4>
+                            <small class="text-muted">Завершено за месяц</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="border rounded p-3 mb-2">
+                            <h4 class="text-info">{{ stats.my_total_hours|default:0 }}</h4>
+                            <small class="text-muted">Часов за месяц</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Быстрые действия -->
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Быстрые действия
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if is_manager %}
+                <div class="d-grid gap-2">
+                    <a href="{% url 'order_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Создать заказ
+                    </a>
+                    <a href="{% url 'client_create' %}" class="btn btn-outline-success">
+                        <i class="fas fa-user-plus me-2"></i>Добавить клиента
+                    </a>
+                    <a href="{% url 'service_create' %}" class="btn btn-outline-info">
+                        <i class="fas fa-cog me-2"></i>Добавить услугу
+                    </a>
+                    <a href="{% url 'transactions_list' %}" class="btn btn-outline-warning">
+                        <i class="fas fa-receipt me-2"></i>Финансы
+                    </a>
+                </div>
+                {% endif %}
+                
+                {% if is_owner %}
+                <div class="d-grid gap-2 {% if is_manager %}mt-3{% endif %}">
+                    <a href="{% url 'employee_create' %}" class="btn btn-outline-warning">
+                        <i class="fas fa-user-tie me-2"></i>Добавить сотрудника
+                    </a>
+                    <a href="{% url 'salary_calculate' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-calculator me-2"></i>Рассчитать ЗП
+                    </a>
+                    <a href="{% url 'company_settings' %}" class="btn btn-outline-dark">
+                        <i class="fas fa-cogs me-2"></i>Настройки
+                    </a>
+                </div>
+                {% endif %}
+                
+                <div class="d-grid gap-2 mt-3">
+                    <a href="{% url 'my_salary' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-money-check-alt me-2"></i>Моя зарплата
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Последние заказы -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Последние заказы
+                </h5>
+                <div>
+                    {% if is_manager %}
+                    <a href="{% url 'order_create' %}" class="btn btn-primary btn-sm me-2">
+                        <i class="fas fa-plus me-1"></i>Новый заказ
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'orders_list' %}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-arrow-right me-1"></i>Все заказы
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if recent_orders %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th width="80">#</th>
+                                <th>Клиент</th>
+                                <th>Описание</th>
+                                <th width="120">Сумма</th>
+                                <th width="140">Статус</th>
+                                <th width="120">Дата</th>
+                                <th width="80">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders %}
+                            <tr onclick="location.href='{% url 'order_detail' order.id %}'" style="cursor: pointer;">
+                                <td>
+                                    <strong class="text-primary">#{{ order.id }}</strong>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="company-logo me-2" style="width: 30px; height: 30px; font-size: 12px;">
+                                            {{ order.client.name|first|upper }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">{{ order.client.name|truncatechars:30 }}</div>
+                                            {% if order.client.phone %}
+                                            <small class="text-muted">{{ order.client.phone }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="text-truncate" style="max-width: 200px;">
+                                        {{ order.description|default:"Без описания" }}
+                                    </div>
+                                    {% if order.order_services.count > 0 %}
+                                    <small class="text-muted">{{ order.order_services.count }} услуг</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <strong class="text-success">{{ order.total_amount|floatformat:0 }}₽</strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if order.status == 'new' %}warning{% elif order.status == 'in_progress' %}info{% elif order.status == 'completed' %}success{% else %}secondary{% endif %}">
+                                        {{ order.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div>{{ order.order_date|date:"d.m.Y" }}</div>
+                                    <small class="text-muted">{{ order.order_date|date:"H:i" }}</small>
+                                </td>
+                                <td onclick="event.stopPropagation();">
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" 
+                                                data-bs-toggle="dropdown">
+                                            <i class="fas fa-cog"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="{% url 'order_detail' order.id %}">
+                                                <i class="fas fa-eye me-2"></i>Просмотр
+                                            </a></li>
+                                            {% if is_manager %}
+                                            <li><a class="dropdown-item" href="{% url 'order_edit' order.id %}">
+                                                <i class="fas fa-edit me-2"></i>Редактировать
+                                            </a></li>
+                                            {% endif %}
+                                            {% if order.status != 'completed' %}
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item" href="#" onclick="updateOrderStatus({{ order.id }}, 'completed')">
+                                                <i class="fas fa-check me-2"></i>Завершить
+                                            </a></li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Заказов пока нет</h5>
+                    {% if is_manager %}
+                    <p class="text-muted mb-3">Создайте первый заказ для начала работы</p>
+                    <a href="{% url 'order_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Создать заказ
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// График доходов
+{% if is_manager %}
+const ctx = document.getElementById('revenueChart').getContext('2d');
+const revenueChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн'],
+        datasets: [{
+            label: 'Доходы',
+            data: [120000, 150000, 180000, 140000, 190000, 220000],
+            borderColor: 'rgb(102, 126, 234)',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            tension: 0.4,
+            fill: true
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return value.toLocaleString() + '₽';
+                    }
+                }
+            }
+        }
+    }
+});
+{% endif %}
+
+// Обновление статуса заказа
+function updateOrderStatus(orderId, status) {
+    if (confirm('Изменить статус заказа?')) {
+        fetch(`/api/orders/${orderId}/status/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': csrftoken
+            },
+            body: `status=${status}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Ошибка при обновлении статуса');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка при обновлении статуса');
+        });
+    }
+}
+
+// Автообновление уведомлений каждые 30 секунд
+setInterval(() => {
+    fetch('/api/dashboard/stats/')
+        .then(response => response.json())
+        .then(data => {
+            // Обновляем счетчики если есть изменения
+            // Можно добавить логику обновления
+        })
+        .catch(error => console.error('Error:', error));
+}, 30000);
+</script>
+{% endblock %}
