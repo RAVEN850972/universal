@@ -58,6 +58,40 @@ class CompanyUser(models.Model):
         verbose_name = "Сотрудник компании"
         verbose_name_plural = "Сотрудники компаний"
 
+    def get_total_orders(self):
+        """Общее количество заказов исполнителя"""
+        if self.role == 'executor':
+            return self.user.executor_orders.count()
+        return 0
+    
+    def get_completed_orders(self):
+        """Количество завершенных заказов исполнителя"""
+        if self.role == 'executor':
+            return self.user.executor_orders.filter(order__status='completed').count()
+        return 0
+    
+    def get_success_rate(self):
+        """Процент успешно завершенных заказов"""
+        total = self.get_total_orders()
+        if total == 0:
+            return 0
+        completed = self.get_completed_orders()
+        return round((completed / total) * 100, 1)
+    
+    def get_rating(self):
+        """Рейтинг сотрудника (от 1 до 5)"""
+        success_rate = self.get_success_rate()
+        if success_rate >= 95:
+            return 5
+        elif success_rate >= 85:
+            return 4
+        elif success_rate >= 70:
+            return 3
+        elif success_rate >= 50:
+            return 2
+        else:
+            return 1
+
 
 class Client(models.Model):
     """Клиенты компании"""
