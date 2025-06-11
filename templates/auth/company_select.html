@@ -1,0 +1,109 @@
+<!-- templates/auth/company_select.html -->
+{% extends 'base.html' %}
+
+{% block title %}Выбор компании{% endblock %}
+
+{% block auth_content %}
+<div class="row justify-content-center align-items-center" style="min-height: 100vh; background: var(--primary-gradient);">
+    <div class="col-md-8">
+        <div class="card shadow-lg border-0 fade-in">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <div class="company-logo d-inline-flex mb-3" style="width: 60px; height: 60px; font-size: 24px;">
+                        {{ user.first_name|first|upper|default:user.username|first|upper }}
+                    </div>
+                    <h3 class="card-title">Выберите компанию</h3>
+                    <p class="text-muted">Привет, {{ user.get_full_name|default:user.username }}!</p>
+                </div>
+                
+                {% if user_companies %}
+                <form method="post" id="companySelectForm">
+                    {% csrf_token %}
+                    <div class="row">
+                        {% for company_user in user_companies %}
+                        <div class="col-md-6 mb-3">
+                            <label class="card company-card h-100" style="cursor: pointer;">
+                                <input type="radio" name="company_id" value="{{ company_user.company.id }}" class="d-none">
+                                <div class="card-body text-center p-4">
+                                    <div class="company-logo d-inline-flex mb-3">
+                                        {{ company_user.company.name|first|upper }}
+                                    </div>
+                                    <h5 class="card-title">{{ company_user.company.name }}</h5>
+                                    <p class="card-text text-muted mb-2">{{ company_user.get_role_display }}</p>
+                                    {% if company_user.company.address %}
+                                    <small class="text-muted">
+                                        <i class="fas fa-map-marker-alt me-1"></i>
+                                        {{ company_user.company.address|truncatechars:50 }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 mt-3 py-2">
+                        <i class="fas fa-arrow-right me-2"></i>Продолжить
+                    </button>
+                </form>
+                {% else %}
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h5>У вас нет доступа ни к одной компании</h5>
+                    <p class="text-muted">Обратитесь к администратору системы для получения доступа</p>
+                </div>
+                {% endif %}
+                
+                <div class="text-center mt-4">
+                    <a href="{% url 'logout' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-sign-out-alt me-2"></i>Выйти
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.company-card {
+    transition: all 0.3s ease;
+    border: 2px solid transparent !important;
+}
+
+.company-card:hover {
+    border-color: #667eea !important;
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.2) !important;
+}
+
+input[type="radio"]:checked + .card-body {
+    background: var(--primary-gradient);
+    color: white;
+}
+
+input[type="radio"]:checked + .card-body .text-muted {
+    color: rgba(255,255,255,0.8) !important;
+}
+</style>
+
+<script>
+document.querySelectorAll('.company-card').forEach(card => {
+    card.addEventListener('click', function() {
+        // Убираем выделение с других карточек
+        document.querySelectorAll('.company-card').forEach(c => {
+            c.querySelector('input[type="radio"]').checked = false;
+            c.classList.remove('selected');
+        });
+        
+        // Выделяем текущую карточку
+        this.querySelector('input[type="radio"]').checked = true;
+        this.classList.add('selected');
+    });
+});
+
+document.getElementById('companySelectForm').addEventListener('submit', function(e) {
+    const submitBtn = this.querySelector('button[type="submit"]');
+    showLoading(submitBtn);
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Загрузка...';
+});
+</script>
+{% endblock %}

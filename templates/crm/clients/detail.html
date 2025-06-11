@@ -1,0 +1,607 @@
+<!-- templates/crm/clients/detail.html -->
+{% extends 'base.html' %}
+
+{% block title %}{{ client.name }} - {{ current_company.name }}{% endblock %}
+{% block page_title %}{{ client.name }}{% endblock %}
+{% block page_icon %}user{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <!-- Основная информация -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Информация о клиенте
+                </h5>
+                <span class="badge bg-{% if client.source == 'website' %}primary{% elif client.source == 'referral' %}success{% elif client.source == 'advertising' %}warning{% else %}secondary{% endif %} fs-6">
+                    {{ client.get_source_display }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center mb-4">
+                            <div class="company-logo me-3" style="width: 60px; height: 60px; font-size: 24px;">
+                                {{ client.name|first|upper }}
+                            </div>
+                            <div>
+                                <h4 class="mb-1">{{ client.name }}</h4>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    Клиент с {{ client.created_at|date:"d.m.Y" }}
+                                    ({{ client.created_at|timesince }} назад)
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="contact-info">
+                            {% if client.phone %}
+                            <div class="mb-3">
+                                <h6 class="text-muted mb-1">Телефон</h6>
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-phone text-success me-2"></i>
+                                    <a href="tel:{{ client.phone }}" class="text-decoration-none me-3">
+                                        {{ client.phone }}
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-success" onclick="callClient()">
+                                        <i class="fas fa-phone me-1"></i>Позвонить
+                                    </button>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if client.email %}
+                            <div class="mb-3">
+                                <h6 class="text-muted mb-1">Email</h6>
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-envelope text-info me-2"></i>
+                                    <a href="mailto:{{ client.email }}" class="text-decoration-none me-3">
+                                        {{ client.email }}
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-info" onclick="emailClient()">
+                                        <i class="fas fa-envelope me-1"></i>Написать
+                                    </button>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        {% if client.address %}
+                        <div class="mb-3">
+                            <h6 class="text-muted mb-1">Адрес</h6>
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-map-marker-alt text-danger me-2 mt-1"></i>
+                                <div class="flex-grow-1">
+                                    <div>{{ client.address }}</div>
+                                    <button class="btn btn-sm btn-outline-primary mt-2" onclick="showOnMap()">
+                                        <i class="fas fa-map me-1"></i>Показать на карте
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if client.notes %}
+                        <div class="mb-3">
+                            <h6 class="text-muted mb-1">Примечания</h6>
+                            <div class="p-3 bg-light rounded">
+                                {{ client.notes|linebreaks }}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Заказы клиента -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-shopping-cart me-2"></i>История заказов
+                    <span class="badge bg-primary ms-2">{{ orders.count }}</span>
+                </h5>
+                <div>
+                    <div class="btn-group me-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                                data-bs-toggle="dropdown">
+                            <i class="fas fa-filter me-1"></i>Фильтр
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="?status=all">Все заказы</a></li>
+                            <li><a class="dropdown-item" href="?status=new">Новые</a></li>
+                            <li><a class="dropdown-item" href="?status=in_progress">В работе</a></li>
+                            <li><a class="dropdown-item" href="?status=completed">Завершенные</a></li>
+                        </ul>
+                    </div>
+                    
+                    {% if can_edit %}
+                    <a href="{% url 'order_create' %}?client={{ client.id }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus me-1"></i>Новый заказ
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                {% if orders %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="80">#</th>
+                                <th>Описание</th>
+                                <th width="120">Сумма</th>
+                                <th width="140">Статус</th>
+                                <th width="120">Дата</th>
+                                <th width="100">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr onclick="location.href='{% url 'order_detail' order.id %}'" style="cursor: pointer;"
+                                class="{% if order.status == 'new' %}table-warning{% elif order.status == 'completed' %}table-success{% endif %}">
+                                <td>
+                                    <strong class="text-primary">#{{ order.id }}</strong>
+                                </td>
+                                <td>
+                                    <div>{{ order.description|truncatechars:60|default:"Без описания" }}</div>
+                                    {% if order.order_services.count > 0 %}
+                                    <small class="text-muted">
+                                        <i class="fas fa-cog me-1"></i>{{ order.order_services.count }} услуг
+                                    </small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <strong class="text-success">{{ order.total_amount|floatformat:0 }}₽</strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if order.status == 'new' %}warning{% elif order.status == 'in_progress' %}info{% elif order.status == 'completed' %}success{% else %}secondary{% endif %}">
+                                        {{ order.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div>{{ order.order_date|date:"d.m.Y" }}</div>
+                                    <small class="text-muted">{{ order.order_date|date:"H:i" }}</small>
+                                </td>
+                                <td onclick="event.stopPropagation();">
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" 
+                                                data-bs-toggle="dropdown">
+                                            <i class="fas fa-cog"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="{% url 'order_detail' order.id %}">
+                                                <i class="fas fa-eye me-2"></i>Просмотр
+                                            </a></li>
+                                            {% if can_edit %}
+                                            <li><a class="dropdown-item" href="{% url 'order_edit' order.id %}">
+                                                <i class="fas fa-edit me-2"></i>Редактировать
+                                            </a></li>
+                                            {% endif %}
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item" href="#" onclick="duplicateOrder({{ order.id }})">
+                                                <i class="fas fa-copy me-2"></i>Дублировать
+                                            </a></li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">У клиента пока нет заказов</h5>
+                    <p class="text-muted">Создайте первый заказ для начала сотрудничества</p>
+                    {% if can_edit %}
+                    <a href="{% url 'order_create' %}?client={{ client.id }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Создать заказ
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- График активности -->
+        {% if orders %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>График заказов
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="ordersChart" height="100"></canvas>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Боковая панель -->
+    <div class="col-md-4">
+        <!-- Действия -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">Действия</h6>
+            </div>
+            <div class="card-body">
+                {% if can_edit %}
+                <div class="d-grid gap-2 mb-3">
+                    <a href="{% url 'client_edit' client.id %}" class="btn btn-primary">
+                        <i class="fas fa-edit me-2"></i>Редактировать
+                    </a>
+                    
+                    <a href="{% url 'order_create' %}?client={{ client.id }}" class="btn btn-success">
+                        <i class="fas fa-plus me-2"></i>Новый заказ
+                    </a>
+                </div>
+                {% endif %}
+                
+                <div class="d-grid gap-2">
+                    {% if client.phone %}
+                    <a href="tel:{{ client.phone }}" class="btn btn-outline-success">
+                        <i class="fas fa-phone me-2"></i>Позвонить
+                    </a>
+                    {% endif %}
+                    
+                    {% if client.email %}
+                    <a href="mailto:{{ client.email }}" class="btn btn-outline-info">
+                        <i class="fas fa-envelope me-2"></i>Написать письмо
+                    </a>
+                    {% endif %}
+                    
+                    <button class="btn btn-outline-primary" onclick="shareClient()">
+                        <i class="fas fa-share me-2"></i>Поделиться
+                    </button>
+                    
+                    <a href="{% url 'clients_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>К списку клиентов
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Статистика -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>Статистика
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center mb-3">
+                    <div class="col-6 border-end">
+                        <h4 class="text-primary mb-0">{{ orders.count }}</h4>
+                        <small class="text-muted">Всего заказов</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-success mb-0">
+                            {{ total_amount|default:0|floatformat:0 }}₽
+                        </h4>
+                        <small class="text-muted">Общая сумма</small>
+                    </div>
+                </div>
+                
+                <div class="row text-center mb-3">
+                    <div class="col-4">
+                        <h6 class="text-info mb-0">{{ completed_orders }}</h6>
+                        <small class="text-muted">Завершено</small>
+                    </div>
+                    <div class="col-4">
+                        <h6 class="text-warning mb-0">{{ active_orders }}</h6>
+                        <small class="text-muted">Активных</small>
+                    </div>
+                    <div class="col-4">
+                        <h6 class="text-secondary mb-0">{{ cancelled_orders }}</h6>
+                        <small class="text-muted">Отменено</small>
+                    </div>
+                </div>
+                
+                {% if orders.exists %}
+                <hr>
+                
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted">Средний чек:</span>
+                    <strong class="text-primary">{{ average_order|default:0|floatformat:0 }}₽</strong>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted">Первый заказ:</span>
+                    <small>{{ first_order_date|date:"d.m.Y" }}</small>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Последний заказ:</span>
+                    <small>{{ last_order_date|date:"d.m.Y" }}</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Похожие клиенты -->
+        {% if similar_clients %}
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-users me-2"></i>Похожие клиенты
+                </h6>
+            </div>
+            <div class="card-body">
+                {% for similar in similar_clients %}
+                <div class="d-flex align-items-center mb-3">
+                    <div class="company-logo me-2" style="width: 30px; height: 30px; font-size: 12px;">
+                        {{ similar.name|first|upper }}
+                    </div>
+                    <div class="flex-grow-1">
+                        <a href="{% url 'client_detail' similar.id %}" class="text-decoration-none">
+                            <h6 class="mb-0">{{ similar.name|truncatechars:25 }}</h6>
+                        </a>
+                        <small class="text-muted">{{ similar.orders.count }} заказов</small>
+                    </div>
+                </div>
+                {% endfor %}
+           </div>
+       </div>
+       {% endif %}
+   </div>
+</div>
+
+<!-- Модальное окно карты -->
+<div class="modal fade" id="mapModal" tabindex="-1">
+   <div class="modal-dialog modal-lg">
+       <div class="modal-content">
+           <div class="modal-header">
+               <h5 class="modal-title">Адрес клиента на карте</h5>
+               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+           </div>
+           <div class="modal-body">
+               <div id="map" style="height: 400px; background: #f0f0f0; border-radius: 8px;">
+                   <div class="d-flex align-items-center justify-content-center h-100">
+                       <div class="text-center">
+                           <i class="fas fa-map fa-3x text-muted mb-3"></i>
+                           <p class="text-muted">{{ client.address }}</p>
+                           <a href="https://yandex.ru/maps/?text={{ client.address|urlencode }}" 
+                              target="_blank" class="btn btn-primary">
+                               <i class="fas fa-external-link-alt me-2"></i>Открыть в Яндекс.Картах
+                           </a>
+                       </div>
+                   </div>
+               </div>
+           </div>
+       </div>
+   </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// График заказов клиента
+{% if orders %}
+const ctx = document.getElementById('ordersChart').getContext('2d');
+
+// Подготавливаем данные для графика
+const orderData = [
+   {% for order in orders %}
+   {
+       date: '{{ order.order_date|date:"Y-m-d" }}',
+       amount: {{ order.total_amount }},
+       status: '{{ order.status }}'
+   },
+   {% endfor %}
+];
+
+// Группируем по месяцам
+const monthlyData = {};
+orderData.forEach(order => {
+   const month = order.date.substring(0, 7); // YYYY-MM
+   if (!monthlyData[month]) {
+       monthlyData[month] = {
+           orders: 0,
+           amount: 0,
+           completed: 0
+       };
+   }
+   monthlyData[month].orders++;
+   monthlyData[month].amount += order.amount;
+   if (order.status === 'completed') {
+       monthlyData[month].completed++;
+   }
+});
+
+const months = Object.keys(monthlyData).sort();
+const amounts = months.map(month => monthlyData[month].amount);
+const orderCounts = months.map(month => monthlyData[month].orders);
+
+const chart = new Chart(ctx, {
+   type: 'line',
+   data: {
+       labels: months.map(month => {
+           const [year, monthNum] = month.split('-');
+           const monthNames = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 
+                             'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+           return monthNames[parseInt(monthNum) - 1] + ' ' + year;
+       }),
+       datasets: [{
+           label: 'Сумма заказов',
+           data: amounts,
+           borderColor: 'rgb(102, 126, 234)',
+           backgroundColor: 'rgba(102, 126, 234, 0.1)',
+           tension: 0.4,
+           fill: true,
+           yAxisID: 'y'
+       }, {
+           label: 'Количество заказов',
+           data: orderCounts,
+           borderColor: 'rgb(34, 197, 94)',
+           backgroundColor: 'rgba(34, 197, 94, 0.1)',
+           tension: 0.4,
+           fill: false,
+           yAxisID: 'y1'
+       }]
+   },
+   options: {
+       responsive: true,
+       maintainAspectRatio: false,
+       plugins: {
+           legend: {
+               display: true,
+               position: 'top'
+           }
+       },
+       scales: {
+           y: {
+               type: 'linear',
+               display: true,
+               position: 'left',
+               title: {
+                   display: true,
+                   text: 'Сумма (₽)'
+               },
+               ticks: {
+                   callback: function(value) {
+                       return value.toLocaleString() + '₽';
+                   }
+               }
+           },
+           y1: {
+               type: 'linear',
+               display: true,
+               position: 'right',
+               title: {
+                   display: true,
+                   text: 'Количество заказов'
+               },
+               grid: {
+                   drawOnChartArea: false,
+               },
+           }
+       }
+   }
+});
+{% endif %}
+
+// Функции действий
+function callClient() {
+   {% if client.phone %}
+   if (confirm('Позвонить клиенту {{ client.name }}?')) {
+       // Логируем звонок
+       fetch('/api/call-log/', {
+           method: 'POST',
+           headers: {
+               'Content-Type': 'application/json',
+               'X-CSRFToken': csrftoken
+           },
+           body: JSON.stringify({
+               client_id: {{ client.id }},
+               phone: '{{ client.phone }}',
+               type: 'outgoing'
+           })
+       }).then(() => {
+           window.location.href = 'tel:{{ client.phone }}';
+       });
+   }
+   {% endif %}
+}
+
+function emailClient() {
+   {% if client.email %}
+   // Подготавливаем письмо с шаблоном
+   const subject = encodeURIComponent('Сотрудничество с {{ current_company.name }}');
+   const body = encodeURIComponent(`Здравствуйте, {{ client.name }}!
+
+Спасибо за сотрудничество с {{ current_company.name }}.
+
+С уважением,
+{{ user.get_full_name|default:user.username }}
+{{ current_company.name }}
+{% if current_company.phone %}Тел: {{ current_company.phone }}{% endif %}`);
+   
+   window.location.href = `mailto:{{ client.email }}?subject=${subject}&body=${body}`;
+   {% endif %}
+}
+
+function showOnMap() {
+   {% if client.address %}
+   const modal = new bootstrap.Modal(document.getElementById('mapModal'));
+   modal.show();
+   {% endif %}
+}
+
+function shareClient() {
+   const url = window.location.href;
+   const text = `Клиент: {{ client.name }}`;
+   
+   if (navigator.share) {
+       navigator.share({
+           title: text,
+           text: text,
+           url: url
+       });
+   } else {
+       // Копируем в буфер обмена
+       navigator.clipboard.writeText(url).then(() => {
+           // Показываем уведомление
+           const toast = document.createElement('div');
+           toast.className = 'alert alert-success position-fixed';
+           toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+           toast.innerHTML = '<i class="fas fa-check me-2"></i>Ссылка скопирована!';
+           document.body.appendChild(toast);
+           
+           setTimeout(() => {
+               toast.remove();
+           }, 3000);
+       });
+   }
+}
+
+function duplicateOrder(orderId) {
+   if (confirm('Создать новый заказ на основе выбранного?')) {
+       window.location.href = `{% url 'order_create' %}?duplicate=${orderId}`;
+   }
+}
+
+// Горячие клавиши
+document.addEventListener('keydown', function(e) {
+   // Ctrl+E - редактировать
+   if (e.ctrlKey && e.key === 'e') {
+       e.preventDefault();
+       {% if can_edit %}
+       window.location.href = '{% url "client_edit" client.id %}';
+       {% endif %}
+   }
+   
+   // Ctrl+N - новый заказ
+   if (e.ctrlKey && e.key === 'n') {
+       e.preventDefault();
+       {% if can_edit %}
+       window.location.href = '{% url "order_create" %}?client={{ client.id }}';
+       {% endif %}
+   }
+   
+   // Escape - вернуться к списку
+   if (e.key === 'Escape') {
+       window.location.href = '{% url "clients_list" %}';
+   }
+});
+
+// Автообновление статистики
+function updateStats() {
+   fetch(`/api/clients/{{ client.id }}/stats/`)
+       .then(response => response.json())
+       .then(data => {
+           // Обновляем счетчики если нужно
+           // Можно добавить анимацию изменений
+       })
+       .catch(error => console.error('Error:', error));
+}
+
+// Обновляем статистику каждые 60 секунд
+setInterval(updateStats, 60000);
+</script>
+{% endblock %}

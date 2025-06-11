@@ -1,0 +1,595 @@
+<!-- templates/crm/clients/create.html -->
+{% extends 'base.html' %}
+
+{% block title %}{% if form.instance.pk %}Редактирование{% else %}Создание{% endif %} клиента - {{ current_company.name }}{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Редактирование клиента{% else %}Новый клиент{% endif %}{% endblock %}
+{% block page_icon %}{% if form.instance.pk %}edit{% else %}user-plus{% endif %}{% endblock %}
+
+{% block content %}
+<form method="post" id="clientForm">
+    {% csrf_token %}
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Основная информация -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Основная информация
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">
+                                Название/Имя <span class="text-danger">*</span>
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <div class="text-danger small">{{ form.name.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text">Название компании или ФИО физического лица</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.source.id_for_label }}" class="form-label">
+                                Источник
+                            </label>
+                            {{ form.source }}
+                            {% if form.source.errors %}
+                            <div class="text-danger small">{{ form.source.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text">Откуда узнали о вас</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.address.id_for_label }}" class="form-label">
+                            Адрес
+                        </label>
+                        {{ form.address }}
+                        {% if form.address.errors %}
+                        <div class="text-danger small">{{ form.address.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text">Полный адрес для выполнения работ</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.notes.id_for_label }}" class="form-label">
+                            Примечания
+                        </label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                        <div class="text-danger small">{{ form.notes.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text">Дополнительная информация о клиенте</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Контактная информация -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-address-book me-2"></i>Контактная информация
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.phone.id_for_label }}" class="form-label">
+                                Телефон
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-phone"></i>
+                                </span>
+                                {{ form.phone }}
+                                <button type="button" class="btn btn-outline-secondary" onclick="formatPhone()" title="Форматировать">
+                                    <i class="fas fa-magic"></i>
+                                </button>
+                            </div>
+                            {% if form.phone.errors %}
+                            <div class="text-danger small">{{ form.phone.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.email.id_for_label }}" class="form-label">
+                                Email
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                                {{ form.email }}
+                                <button type="button" class="btn btn-outline-secondary" onclick="validateEmail()" title="Проверить">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </div>
+                            {% if form.email.errors %}
+                            <div class="text-danger small">{{ form.email.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="preferPhone">
+                                <label class="form-check-label" for="preferPhone">
+                                    Предпочитает звонки
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="preferEmail">
+                                <label class="form-check-label" for="preferEmail">
+                                    Предпочитает email
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            {% if form.instance.pk %}
+            <!-- История заказов -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>История заказов
+                    </h5>
+                    <a href="{% url 'order_create' %}?client={{ form.instance.id }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus me-1"></i>Новый заказ
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if form.instance.orders.exists %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Дата</th>
+                                    <th>Описание</th>
+                                    <th>Статус</th>
+                                    <th>Сумма</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in form.instance.orders.all|slice:":5" %}
+                                <tr onclick="location.href='{% url 'order_detail' order.id %}'" style="cursor: pointer;">
+                                    <td><strong class="text-primary">#{{ order.id }}</strong></td>
+                                    <td>{{ order.order_date|date:"d.m.Y" }}</td>
+                                    <td>{{ order.description|truncatechars:50|default:"Без описания" }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if order.status == 'new' %}warning{% elif order.status == 'in_progress' %}info{% elif order.status == 'completed' %}success{% else %}secondary{% endif %}">
+                                            {{ order.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td><strong>{{ order.total_amount|floatformat:0 }}₽</strong></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% if form.instance.orders.count > 5 %}
+                    <div class="text-center mt-3">
+                        <a href="{% url 'client_detail' form.instance.id %}" class="btn btn-outline-primary btn-sm">
+                            Показать все {{ form.instance.orders.count }} заказов
+                        </a>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-3 text-muted">
+                        <i class="fas fa-shopping-cart fa-2x mb-2"></i>
+                        <p>У клиента пока нет заказов</p>
+                        <a href="{% url 'order_create' %}?client={{ form.instance.id }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Создать первый заказ
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Боковая панель -->
+        <div class="col-md-4">
+            <!-- Действия -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Действия</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>
+                            {% if form.instance.pk %}Сохранить изменения{% else %}Создать клиента{% endif %}
+                        </button>
+                        
+                        {% if form.instance.pk %}
+                        <a href="{% url 'client_detail' form.instance.id %}" class="btn btn-outline-info">
+                            <i class="fas fa-eye me-2"></i>Просмотр
+                        </a>
+                        {% endif %}
+                        
+                        <a href="{% url 'clients_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>К списку клиентов
+                        </a>
+                    </div>
+                    
+                    {% if form.instance.pk %}
+                    <hr>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="sendWelcome">
+                        <label class="form-check-label" for="sendWelcome">
+                            Отправить приветственное сообщение
+                        </label>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        {% if form.instance.phone %}
+                        <a href="tel:{{ form.instance.phone }}" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-phone me-2"></i>Позвонить
+                        </a>
+                        {% endif %}
+                        
+                        {% if form.instance.email %}
+                        <a href="mailto:{{ form.instance.email }}" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-envelope me-2"></i>Написать
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if form.instance.pk %}
+            <!-- Статистика -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Статистика
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center mb-3">
+                        <div class="col-6 border-end">
+                            <h5 class="text-primary mb-0">{{ form.instance.orders.count }}</h5>
+                            <small class="text-muted">Заказов</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-success mb-0">
+                                {{ form.instance.orders.aggregate.total_amount__sum|default:0|floatformat:0 }}₽
+                            </h5>
+                            <small class="text-muted">Общая сумма</small>
+                        </div>
+                    </div>
+                    
+                    {% if form.instance.orders.exists %}
+                    <div class="row text-center">
+                        <div class="col-6 border-end">
+                            <h6 class="text-info mb-0">
+                                {{ form.instance.orders.filter.status='completed'.count }}
+                            </h6>
+                            <small class="text-muted">Завершено</small>
+                        </div>
+                        <div class="col-6">
+                            <h6 class="text-warning mb-0">
+                                {{ form.instance.orders.filter.status__in='new,in_progress'.count }}
+                            </h6>
+                            <small class="text-muted">Активных</small>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="text-center">
+                        <small class="text-muted">Клиент с</small><br>
+                        <strong>{{ form.instance.created_at|date:"d.m.Y" }}</strong>
+                        <br><small class="text-muted">({{ form.instance.created_at|timesince }} назад)</small>
+                    </div>
+                    
+                    {% if form.instance.orders.exists %}
+                    <div class="text-center mt-2">
+                        <small class="text-muted">Последний заказ</small><br>
+                        <strong>{{ form.instance.orders.last.order_date|date:"d.m.Y" }}</strong>
+                        <br><small class="text-muted">({{ form.instance.orders.last.order_date|timesince }} назад)</small>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Шаблоны клиентов -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-copy me-2"></i>Быстрое заполнение
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <select class="form-select mb-3" id="clientTemplate" onchange="loadClientTemplate()">
+                        <option value="">Выберите тип клиента</option>
+                        <option value="individual">Физическое лицо</option>
+                        <option value="small_business">Малый бизнес</option>
+                        <option value="corporation">Крупная компания</option>
+                        <option value="government">Государственная организация</option>
+                    </select>
+                    
+                    <div class="form-text">
+                        Автоматическое заполнение полей в зависимости от типа клиента
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+ </form>
+ {% endblock %}
+ 
+ {% block extra_js %}
+ <script>
+ // Форматирование телефона
+ function formatPhone() {
+    const phoneInput = document.getElementById('{{ form.phone.id_for_label }}');
+    let phone = phoneInput.value.replace(/\D/g, '');
+    
+    if (phone.length === 11 && phone.startsWith('8')) {
+        phone = '7' + phone.substr(1);
+    }
+    
+    if (phone.length === 11 && phone.startsWith('7')) {
+        phone = '+7 (' + phone.substr(1, 3) + ') ' + phone.substr(4, 3) + '-' + phone.substr(7, 2) + '-' + phone.substr(9, 2);
+        phoneInput.value = phone;
+    }
+ }
+ 
+ // Проверка email
+ function validateEmail() {
+    const emailInput = document.getElementById('{{ form.email.id_for_label }}');
+    const email = emailInput.value;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (email && emailRegex.test(email)) {
+        emailInput.classList.remove('is-invalid');
+        emailInput.classList.add('is-valid');
+        
+        // Показываем уведомление
+        const feedback = document.createElement('div');
+        feedback.className = 'valid-feedback';
+        feedback.textContent = 'Email корректен';
+        emailInput.parentNode.appendChild(feedback);
+        
+        setTimeout(() => {
+            emailInput.classList.remove('is-valid');
+            feedback.remove();
+        }, 3000);
+    } else if (email) {
+        emailInput.classList.remove('is-valid');
+        emailInput.classList.add('is-invalid');
+        
+        const feedback = document.createElement('div');
+        feedback.className = 'invalid-feedback';
+        feedback.textContent = 'Некорректный email';
+        emailInput.parentNode.appendChild(feedback);
+        
+        setTimeout(() => {
+            emailInput.classList.remove('is-invalid');
+            feedback.remove();
+        }, 3000);
+    }
+ }
+ 
+ // Загрузка шаблона клиента
+ function loadClientTemplate() {
+    const template = document.getElementById('clientTemplate').value;
+    
+    const templates = {
+        'individual': {
+            name: '',
+            source: 'referral',
+            address: 'г. Москва, ',
+            notes: 'Частный клиент'
+        },
+        'small_business': {
+            name: 'ООО ',
+            source: 'website',
+            address: 'г. Москва, ',
+            notes: 'Малый бизнес, требует оперативности'
+        },
+        'corporation': {
+            name: 'ПАО ',
+            source: 'advertising',
+            address: 'г. Москва, ',
+            notes: 'Крупная компания, официальное оформление документов'
+        },
+        'government': {
+            name: '',
+            source: 'other',
+            address: 'г. Москва, ',
+            notes: 'Государственная организация, требуется договор'
+        }
+    };
+    
+    if (templates[template]) {
+        const data = templates[template];
+        
+        if (data.name && !document.getElementById('{{ form.name.id_for_label }}').value) {
+            document.getElementById('{{ form.name.id_for_label }}').value = data.name;
+        }
+        
+        document.getElementById('{{ form.source.id_for_label }}').value = data.source;
+        
+        if (data.address && !document.getElementById('{{ form.address.id_for_label }}').value) {
+            document.getElementById('{{ form.address.id_for_label }}').value = data.address;
+        }
+        
+        if (data.notes && !document.getElementById('{{ form.notes.id_for_label }}').value) {
+            document.getElementById('{{ form.notes.id_for_label }}').value = data.notes;
+        }
+        
+        // Фокус на поле имени для продолжения ввода
+        document.getElementById('{{ form.name.id_for_label }}').focus();
+    }
+ }
+ 
+ // Автоформатирование при вводе телефона
+ document.getElementById('{{ form.phone.id_for_label }}').addEventListener('input', function() {
+    let value = this.value.replace(/\D/g, '');
+    
+    if (value.length > 0) {
+        if (value.length <= 1) {
+            value = '+7 (' + value;
+        } else if (value.length <= 4) {
+            value = '+7 (' + value.substr(1);
+        } else if (value.length <= 7) {
+            value = '+7 (' + value.substr(1, 3) + ') ' + value.substr(4);
+        } else if (value.length <= 9) {
+            value = '+7 (' + value.substr(1, 3) + ') ' + value.substr(4, 3) + '-' + value.substr(7);
+        } else {
+            value = '+7 (' + value.substr(1, 3) + ') ' + value.substr(4, 3) + '-' + value.substr(7, 2) + '-' + value.substr(9, 2);
+        }
+        this.value = value;
+    }
+ });
+ 
+ // Проверка дублей при вводе имени клиента
+ let duplicateCheckTimeout;
+ document.getElementById('{{ form.name.id_for_label }}').addEventListener('input', function() {
+    const name = this.value.trim();
+    
+    if (name.length > 2) {
+        clearTimeout(duplicateCheckTimeout);
+        duplicateCheckTimeout = setTimeout(() => {
+            fetch(`/api/clients/check-duplicate/?name=${encodeURIComponent(name)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.exists && !{{ form.instance.pk|default:'false' }}) {
+                        showDuplicateWarning(data.clients);
+                    } else {
+                        hideDuplicateWarning();
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }, 1000);
+    }
+ });
+ 
+ function showDuplicateWarning(clients) {
+    hideDuplicateWarning();
+    
+    const nameField = document.getElementById('{{ form.name.id_for_label }}');
+    const warning = document.createElement('div');
+    warning.id = 'duplicateWarning';
+    warning.className = 'alert alert-warning mt-2';
+    warning.innerHTML = `
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>Возможные дубли:</strong>
+        <ul class="mb-0 mt-2">
+            ${clients.map(client => `
+                <li>
+                    <a href="/clients/${client.id}/" class="text-decoration-none">
+                        ${client.name}
+                    </a>
+                    ${client.phone ? `<small class="text-muted"> - ${client.phone}</small>` : ''}
+                </li>
+            `).join('')}
+        </ul>
+    `;
+    
+    nameField.parentNode.appendChild(warning);
+ }
+ 
+ function hideDuplicateWarning() {
+    const warning = document.getElementById('duplicateWarning');
+    if (warning) {
+        warning.remove();
+    }
+ }
+ 
+ // Валидация формы
+ document.getElementById('clientForm').addEventListener('submit', function(e) {
+    const name = document.getElementById('{{ form.name.id_for_label }}').value.trim();
+    const phone = document.getElementById('{{ form.phone.id_for_label }}').value.trim();
+    const email = document.getElementById('{{ form.email.id_for_label }}').value.trim();
+    
+    if (!name) {
+        e.preventDefault();
+        alert('Введите название/имя клиента');
+        document.getElementById('{{ form.name.id_for_label }}').focus();
+        return;
+    }
+    
+    if (!phone && !email) {
+        e.preventDefault();
+        alert('Укажите хотя бы один способ связи: телефон или email');
+        document.getElementById('{{ form.phone.id_for_label }}').focus();
+        return;
+    }
+    
+    // Показываем индикатор загрузки
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Сохранение...';
+    submitBtn.disabled = true;
+    
+    // Восстанавливаем кнопку через 10 секунд на случай ошибки
+    setTimeout(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }, 10000);
+ });
+ 
+ // Автосохранение в localStorage
+ function autoSave() {
+    const formData = {
+        name: document.getElementById('{{ form.name.id_for_label }}').value,
+        phone: document.getElementById('{{ form.phone.id_for_label }}').value,
+        email: document.getElementById('{{ form.email.id_for_label }}').value,
+        address: document.getElementById('{{ form.address.id_for_label }}').value,
+        source: document.getElementById('{{ form.source.id_for_label }}').value,
+        notes: document.getElementById('{{ form.notes.id_for_label }}').value
+    };
+    
+    localStorage.setItem('clientDraft', JSON.stringify(formData));
+ }
+ 
+ // Восстановление черновика
+ function restoreDraft() {
+    {% if not form.instance.pk %}
+    const draft = localStorage.getItem('clientDraft');
+    if (draft && confirm('Восстановить несохраненные данные клиента?')) {
+        const data = JSON.parse(draft);
+        
+        Object.keys(data).forEach(key => {
+            const field = document.getElementById(`id_${key}`);
+            if (field && data[key]) {
+                field.value = data[key];
+            }
+        });
+        
+        localStorage.removeItem('clientDraft');
+    }
+    {% endif %}
+ }
+ 
+ // Инициализация
+ document.addEventListener('DOMContentLoaded', function() {
+    restoreDraft();
+    
+    // Автосохранение каждые 30 секунд
+    {% if not form.instance.pk %}
+    setInterval(autoSave, 30000);
+    {% endif %}
+ });
+ 
+ // Очистка автосохранения при отправке формы
+ document.getElementById('clientForm').addEventListener('submit', function() {
+    localStorage.removeItem('clientDraft');
+ });
+ </script>
+ {% endblock %}

@@ -1,0 +1,899 @@
+<!-- templates/crm/company/settings.html -->
+{% extends 'base.html' %}
+
+{% block title %}Настройки компании - {{ current_company.name }}{% endblock %}
+{% block page_title %}Настройки компании{% endblock %}
+{% block page_icon %}building{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <form method="post" id="companyForm" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- Основная информация -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Основная информация
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">
+                                Название компании <span class="text-danger">*</span>
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <div class="text-danger small">{{ form.name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="logo" class="form-label">Логотип</label>
+                            <input type="file" class="form-control" id="logo" name="logo" 
+                                   accept="image/*" onchange="previewLogo(this)">
+                            <div class="form-text">PNG, JPG до 2MB</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">
+                            Описание деятельности
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                        <div class="text-danger small">{{ form.description.errors.0 }}</div>
+                        {% endif %}
+                        <div class="form-text">Краткое описание вашей компании для клиентов</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Контактная информация -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-address-book me-2"></i>Контактная информация
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.phone.id_for_label }}" class="form-label">
+                                Телефон
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-phone"></i>
+                                </span>
+                                {{ form.phone }}
+                            </div>
+                            {% if form.phone.errors %}
+                            <div class="text-danger small">{{ form.phone.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.email.id_for_label }}" class="form-label">
+                                Email
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                                {{ form.email }}
+                            </div>
+                            {% if form.email.errors %}
+                            <div class="text-danger small">{{ form.email.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.address.id_for_label }}" class="form-label">
+                            Адрес
+                        </label>
+                        {{ form.address }}
+                        {% if form.address.errors %}
+                        <div class="text-danger small">{{ form.address.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Дополнительные контакты -->
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="website" class="form-label">Веб-сайт</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-globe"></i>
+                                </span>
+                                <input type="url" class="form-control" id="website" name="website" 
+                                       placeholder="https://example.com">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="telegram" class="form-label">Telegram</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fab fa-telegram"></i>
+                                </span>
+                                <input type="text" class="form-control" id="telegram" name="telegram" 
+                                       placeholder="@username">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="whatsapp" class="form-label">WhatsApp</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fab fa-whatsapp"></i>
+                                </span>
+                                <input type="tel" class="form-control" id="whatsapp" name="whatsapp" 
+                                       placeholder="+7 (999) 123-45-67">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Рабочее время и настройки -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>Рабочее время и настройки
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="mb-3">Рабочие дни</h6>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="monday" name="work_days" value="1" checked>
+                                <label class="form-check-label" for="monday">Понедельник</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="tuesday" name="work_days" value="2" checked>
+                                <label class="form-check-label" for="tuesday">Вторник</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="wednesday" name="work_days" value="3" checked>
+                                <label class="form-check-label" for="wednesday">Среда</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="thursday" name="work_days" value="4" checked>
+                                <label class="form-check-label" for="thursday">Четверг</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="friday" name="work_days" value="5" checked>
+                                <label class="form-check-label" for="friday">Пятница</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="saturday" name="work_days" value="6">
+                                <label class="form-check-label" for="saturday">Суббота</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="sunday" name="work_days" value="0">
+                                <label class="form-check-label" for="sunday">Воскресенье</label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="work_start" class="form-label">Начало работы</label>
+                                <input type="time" class="form-control" id="work_start" name="work_start" value="09:00">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="work_end" class="form-label">Конец работы</label>
+                                <input type="time" class="form-control" id="work_end" name="work_end" value="18:00">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="timezone" class="form-label">Часовой пояс</label>
+                                <select class="form-select" id="timezone" name="timezone">
+                                    <option value="Europe/Moscow" selected>Москва (UTC+3)</option>
+                                    <option value="Europe/Kaliningrad">Калининград (UTC+2)</option>
+                                    <option value="Asia/Yekaterinburg">Екатеринбург (UTC+5)</option>
+                                    <option value="Asia/Novosibirsk">Новосибирск (UTC+7)</option>
+                                    <option value="Asia/Vladivostok">Владивосток (UTC+10)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="currency" class="form-label">Валюта</label>
+                                <select class="form-select" id="currency" name="currency">
+                                    <option value="RUB" selected>Российский рубль (₽)</option>
+                                    <option value="USD">Доллар США ($)</option>
+                                    <option value="EUR">Евро (€)</option>
+                                    <option value="KZT">Казахстанский тенге (₸)</option>
+                                    <option value="BYN">Белорусский рубль (Br)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Настройки уведомлений -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bell me-2"></i>Уведомления
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="mb-3">Email уведомления</h6>
+                            
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="notify_new_orders" name="notify_new_orders" checked>
+                                <label class="form-check-label" for="notify_new_orders">
+                                    Новые заказы
+                                </label>
+                            </div>
+                            
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="notify_completed_orders" name="notify_completed_orders" checked>
+                                <label class="form-check-label" for="notify_completed_orders">
+                                    Завершенные заказы
+                                </label>
+                            </div>
+                            
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="notify_overdue_orders" name="notify_overdue_orders" checked>
+                                <label class="form-check-label" for="notify_overdue_orders">
+                                    Просроченные заказы
+                                </label>
+                            </div>
+                            
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="notify_new_clients" name="notify_new_clients" checked>
+                                <label class="form-check-label" for="notify_new_clients">
+                                    Новые клиенты
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6 class="mb-3">Telegram уведомления</h6>
+                            
+                            <div class="mb-3">
+                                <label for="telegram_bot_token" class="form-label">Token бота</label>
+                                <input type="password" class="form-control" id="telegram_bot_token" 
+                                       name="telegram_bot_token" placeholder="123456:ABC-DEF...">
+                                <div class="form-text">
+                                    <a href="https://t.me/BotFather" target="_blank">
+                                        Получить у @BotFather
+                                    </a>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="telegram_chat_id" class="form-label">ID чата</label>
+                                <input type="text" class="form-control" id="telegram_chat_id" 
+                                       name="telegram_chat_id" placeholder="-123456789">
+                                <div class="form-text">ID группы для уведомлений</div>
+                            </div>
+                            
+                            <button type="button" class="btn btn-outline-info btn-sm" onclick="testTelegramConnection()">
+                                <i class="fas fa-paper-plane me-1"></i>Тестовое сообщение
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Интеграции -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-puzzle-piece me-2"></i>Интеграции
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="mb-3">1C Бухгалтерия</h6>
+                            
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="enable_1c" name="enable_1c">
+                                <label class="form-check-label" for="enable_1c">
+                                    Включить синхронизацию с 1C
+                                </label>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="1c_server" class="form-label">Сервер 1C</label>
+                                <input type="text" class="form-control" id="1c_server" name="1c_server" 
+                                       placeholder="http://server:port/base">
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-6">
+                                    <label for="1c_username" class="form-label">Логин</label>
+                                    <input type="text" class="form-control" id="1c_username" name="1c_username">
+                                </div>
+                                <div class="col-6">
+                                    <label for="1c_password" class="form-label">Пароль</label>
+                                    <input type="password" class="form-control" id="1c_password" name="1c_password">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6 class="mb-3">Платежные системы</h6>
+                            
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="enable_payments" name="enable_payments">
+                                <label class="form-check-label" for="enable_payments">
+                                    Включить онлайн-платежи
+                                </label>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="payment_provider" class="form-label">Провайдер</label>
+                                <select class="form-select" id="payment_provider" name="payment_provider">
+                                    <option value="">Выберите провайдера</option>
+                                    <option value="yookassa">ЮKassa</option>
+                                    <option value="cloudpayments">CloudPayments</option>
+                                    <option value="sberbank">Сбербанк</option>
+                                    <option value="tinkoff">Тинькофф</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="payment_secret_key" class="form-label">Секретный ключ</label>
+                                <input type="password" class="form-control" id="payment_secret_key" 
+                                       name="payment_secret_key">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Сохранить настройки
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Боковая панель -->
+    <div class="col-md-4">
+        <!-- Предварительный просмотр логотипа -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-image me-2"></i>Логотип компании
+                </h6>
+            </div>
+            <div class="card-body text-center">
+                <div id="logoPreview" class="mb-3">
+                    {% if current_company.logo %}
+                    <img src="{{ current_company.logo.url }}" alt="Логотип" class="img-fluid rounded" style="max-height: 150px;">
+                    {% else %}
+                    <div class="company-logo d-inline-flex" style="width: 80px; height: 80px; font-size: 32px;">
+                        {{ current_company.name|first|upper }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="form-text">
+                    Рекомендуемый размер: 300x300px<br>
+                    Форматы: PNG, JPG, SVG
+                </div>
+            </div>
+        </div>
+        
+        <!-- Информация о компании -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Информация
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <small class="text-muted">Создана:</small><br>
+                    <strong>{{ current_company.created_at|date:"d.m.Y" }}</strong>
+                </div>
+                
+                <div class="mb-2">
+                    <small class="text-muted">Сотрудников:</small><br>
+                    <strong>{{ current_company.company_users.count }}</strong>
+                </div>
+                
+                <div class="mb-2">
+                    <small class="text-muted">Клиентов:</small><br>
+                    <strong>{{ current_company.clients.count }}</strong>
+                </div>
+                
+                <div class="mb-2">
+                    <small class="text-muted">Заказов:</small><br>
+                    <strong>{{ current_company.orders.count }}</strong>
+                </div>
+                
+                <div class="mb-2">
+                    <small class="text-muted">Услуг:</small><br>
+                    <strong>{{ current_company.services.count }}</strong>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Быстрые действия -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Быстрые действия
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-info btn-sm" onclick="exportCompanyData()">
+                        <i class="fas fa-download me-2"></i>Экспорт данных
+                    </button>
+                    
+                    <button class="btn btn-outline-warning btn-sm" onclick="backupSettings()">
+                        <i class="fas fa-save me-2"></i>Резервная копия
+                    </button>
+                    
+                    <button class="btn btn-outline-secondary btn-sm" onclick="resetToDefaults()">
+                        <i class="fas fa-undo me-2"></i>Сбросить настройки
+                    </button>
+                    
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-arrow-left me-2"></i>К главной
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Справка -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-question-circle me-2"></i>Справка
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <small class="fw-bold">Рабочее время</small><br>
+                    <small class="text-muted">Влияет на автоматические уведомления и отчеты</small>
+                </div>
+                
+                <div class="mb-3">
+                    <small class="fw-bold">Telegram бот</small><br>
+                    <small class="text-muted">Для настройки создайте бота у @BotFather и добавьте в группу</small>
+                </div>
+                
+                <div class="mb-3">
+                    <small class="fw-bold">Интеграции</small><br>
+                    <small class="text-muted">Подключайте только проверенные и безопасные сервисы</small>
+                </div>
+                
+                <hr>
+                
+                <div class="text-center">
+                    <a href="#" class="btn btn-sm btn-outline-info">
+                        <i class="fas fa-book me-1"></i>Документация
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Предварительный просмотр логотипа
+function previewLogo(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            const preview = document.getElementById('logoPreview');
+            preview.innerHTML = `
+                <img src="${e.target.result}" alt="Предварительный просмотр" 
+                     class="img-fluid rounded" style="max-height: 150px;">
+            `;
+        }
+        
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// Тестирование Telegram подключения
+function testTelegramConnection() {
+    const botToken = document.getElementById('telegram_bot_token').value;
+    const chatId = document.getElementById('telegram_chat_id').value;
+    
+    if (!botToken || !chatId) {
+        alert('Введите токен бота и ID чата');
+        return;
+    }
+    
+    fetch('/api/test-telegram/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({
+            bot_token: botToken,
+            chat_id: chatId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Тестовое сообщение отправлено успешно!');
+        } else {
+            alert('Ошибка отправки: ' + (data.error || 'Неизвестная ошибка'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Ошибка при отправке тестового сообщения');
+    });
+}
+
+// Экспорт данных компании
+function exportCompanyData() {
+    if (confirm('Экспортировать все данные компании? Это может занять некоторое время.')) {
+        window.open('/api/company/export/?format=full', '_blank');
+    }
+}
+
+// Создание резервной копии настроек
+function backupSettings() {
+    const settings = {
+        company: {
+            name: document.getElementById('{{ form.name.id_for_label }}').value,
+            description: document.getElementById('{{ form.description.id_for_label }}').value,
+            phone: document.getElementById('{{ form.phone.id_for_label }}').value,
+            email: document.getElementById('{{ form.email.id_for_label }}').value,
+            address: document.getElementById('{{ form.address.id_for_label }}').value
+        },
+        work_schedule: {
+            start: document.getElementById('work_start').value,
+            end: document.getElementById('work_end').value,
+            timezone: document.getElementById('timezone').value
+        },
+        notifications: {
+            new_orders: document.getElementById('notify_new_orders').checked,
+            completed_orders: document.getElementById('notify_completed_orders').checked,
+            overdue_orders: document.getElementById('notify_overdue_orders').checked,
+            new_clients: document.getElementById('notify_new_clients').checked
+        }
+    };
+    
+    const dataStr = JSON.stringify(settings, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    const url = URL.createObjectURL(dataBlob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `company_settings_backup_${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    
+    URL.revokeObjectURL(url);
+}
+
+// Сброс к настройкам по умолчанию
+function resetToDefaults() {
+    if (confirm('Сбросить все настройки к значениям по умолчанию? Это действие нельзя отменить.')) {
+        // Рабочее время
+        document.getElementById('work_start').value = '09:00';
+        document.getElementById('work_end').value = '18:00';
+        document.getElementById('timezone').value = 'Europe/Moscow';
+        document.getElementById('currency').value = 'RUB';
+        
+        // Рабочие дни (пн-пт)
+        ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].forEach(day => {
+            document.getElementById(day).checked = true;
+        });
+        ['saturday', 'sunday'].forEach(day => {
+            document.getElementById(day).checked = false;
+        });
+        
+        // Уведомления
+        ['notify_new_orders', 'notify_completed_orders', 'notify_overdue_orders', 'notify_new_clients'].forEach(notify => {
+            document.getElementById(notify).checked = true;
+        });
+        
+        // Интеграции
+        document.getElementById('enable_1c').checked = false;
+        document.getElementById('enable_payments').checked = false;
+        
+        alert('Настройки сброшены к значениям по умолчанию');
+    }
+}
+
+// Валидация формы
+document.getElementById('companyForm').addEventListener('submit', function(e) {
+    const name = document.getElementById('{{ form.name.id_for_label }}').value.trim();
+    if (!name) {
+       e.preventDefault();
+       alert('Введите название компании');
+       document.getElementById('{{ form.name.id_for_label }}').focus();
+       return;
+   }
+   
+   // Проверяем рабочие дни
+   const workDays = document.querySelectorAll('input[name="work_days"]:checked');
+   if (workDays.length === 0) {
+       e.preventDefault();
+       alert('Выберите хотя бы один рабочий день');
+       return;
+   }
+   
+   // Проверяем рабочее время
+   const workStart = document.getElementById('work_start').value;
+   const workEnd = document.getElementById('work_end').value;
+   
+   if (workStart && workEnd && workStart >= workEnd) {
+       e.preventDefault();
+       alert('Время окончания работы должно быть позже времени начала');
+       document.getElementById('work_end').focus();
+       return;
+   }
+   
+   // Показываем индикатор загрузки
+   const submitBtn = this.querySelector('button[type="submit"]');
+   const originalText = submitBtn.innerHTML;
+   submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Сохранение...';
+   submitBtn.disabled = true;
+   
+   // Восстанавливаем кнопку через 10 секунд на случай ошибки
+   setTimeout(() => {
+       submitBtn.innerHTML = originalText;
+       submitBtn.disabled = false;
+   }, 10000);
+});
+
+// Автосохранение важных настроек
+function autoSaveSettings() {
+   const settings = {
+       work_start: document.getElementById('work_start').value,
+       work_end: document.getElementById('work_end').value,
+       timezone: document.getElementById('timezone').value,
+       currency: document.getElementById('currency').value
+   };
+   
+   localStorage.setItem('companySettingsDraft', JSON.stringify(settings));
+}
+
+// Восстановление настроек
+function restoreSettings() {
+   const draft = localStorage.getItem('companySettingsDraft');
+   if (draft) {
+       const settings = JSON.parse(draft);
+       
+       Object.keys(settings).forEach(key => {
+           const element = document.getElementById(key);
+           if (element && settings[key]) {
+               element.value = settings[key];
+           }
+       });
+   }
+}
+
+// Проверка корректности Telegram данных
+document.getElementById('telegram_bot_token').addEventListener('input', function() {
+   const token = this.value;
+   const pattern = /^\d+:[A-Za-z0-9_-]+$/;
+   
+   if (token && !pattern.test(token)) {
+       this.setCustomValidity('Некорректный формат токена');
+   } else {
+       this.setCustomValidity('');
+   }
+});
+
+document.getElementById('telegram_chat_id').addEventListener('input', function() {
+   const chatId = this.value;
+   
+   if (chatId && !chatId.match(/^-?\d+$/)) {
+       this.setCustomValidity('ID чата должен содержать только цифры и знак минус');
+   } else {
+       this.setCustomValidity('');
+   }
+});
+
+// Условное отображение полей интеграций
+document.getElementById('enable_1c').addEventListener('change', function() {
+   const fields = ['1c_server', '1c_username', '1c_password'];
+   fields.forEach(fieldId => {
+       const field = document.getElementById(fieldId);
+       field.required = this.checked;
+       field.closest('.mb-3').style.display = this.checked ? 'block' : 'none';
+   });
+});
+
+document.getElementById('enable_payments').addEventListener('change', function() {
+   const fields = ['payment_provider', 'payment_secret_key'];
+   fields.forEach(fieldId => {
+       const field = document.getElementById(fieldId);
+       field.required = this.checked;
+       field.closest('.mb-3').style.display = this.checked ? 'block' : 'none';
+   });
+});
+
+// Маскирование номера телефона
+document.getElementById('{{ form.phone.id_for_label }}').addEventListener('input', function() {
+   let value = this.value.replace(/\D/g, '');
+   
+   if (value.length > 0) {
+       if (value.length <= 1) {
+           value = '+7 (' + value;
+       } else if (value.length <= 4) {
+           value = '+7 (' + value.substr(1);
+       } else if (value.length <= 7) {
+           value = '+7 (' + value.substr(1, 3) + ') ' + value.substr(4);
+       } else if (value.length <= 9) {
+           value = '+7 (' + value.substr(1, 3) + ') ' + value.substr(4, 3) + '-' + value.substr(7);
+       } else {
+           value = '+7 (' + value.substr(1, 3) + ') ' + value.substr(4, 3) + '-' + value.substr(7, 2) + '-' + value.substr(9, 2);
+       }
+       this.value = value;
+   }
+});
+
+// Проверка доступности веб-сайта
+document.getElementById('website').addEventListener('blur', function() {
+   const url = this.value;
+   if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+       this.value = 'https://' + url;
+   }
+});
+
+// Предупреждение о потере данных при уходе со страницы
+let formChanged = false;
+
+document.getElementById('companyForm').addEventListener('input', function() {
+   formChanged = true;
+});
+
+window.addEventListener('beforeunload', function(e) {
+   if (formChanged) {
+       e.preventDefault();
+       e.returnValue = '';
+       autoSaveSettings();
+   }
+});
+
+// Инициализация
+document.addEventListener('DOMContentLoaded', function() {
+   // Восстанавливаем настройки если есть
+   restoreSettings();
+   
+   // Инициализируем состояние интеграций
+   document.getElementById('enable_1c').dispatchEvent(new Event('change'));
+   document.getElementById('enable_payments').dispatchEvent(new Event('change'));
+   
+   // Автосохранение каждые 60 секунд
+   setInterval(autoSaveSettings, 60000);
+});
+
+// Очистка автосохранения при успешной отправке
+document.getElementById('companyForm').addEventListener('submit', function() {
+   formChanged = false;
+   localStorage.removeItem('companySettingsDraft');
+});
+
+// Горячие клавиши
+document.addEventListener('keydown', function(e) {
+   // Ctrl+S - сохранить
+   if (e.ctrlKey && e.key === 's') {
+       e.preventDefault();
+       document.getElementById('companyForm').submit();
+   }
+   
+   // Ctrl+R - сброс настроек
+   if (e.ctrlKey && e.key === 'r') {
+       e.preventDefault();
+       resetToDefaults();
+   }
+   
+   // Escape - вернуться к главной
+   if (e.key === 'Escape') {
+       if (formChanged) {
+           if (confirm('Вернуться к главной странице? Несохраненные изменения будут потеряны.')) {
+               window.location.href = '{% url "dashboard" %}';
+           }
+       } else {
+           window.location.href = '{% url "dashboard" %}';
+       }
+   }
+});
+
+// Копирование настроек в буфер обмена
+function copySettingsToClipboard() {
+   const settings = {
+       company: document.getElementById('{{ form.name.id_for_label }}').value,
+       phone: document.getElementById('{{ form.phone.id_for_label }}').value,
+       email: document.getElementById('{{ form.email.id_for_label }}').value,
+       work_hours: `${document.getElementById('work_start').value} - ${document.getElementById('work_end').value}`,
+       timezone: document.getElementById('timezone').options[document.getElementById('timezone').selectedIndex].text
+   };
+   
+   const text = Object.entries(settings)
+       .map(([key, value]) => `${key}: ${value}`)
+       .join('\n');
+   
+   navigator.clipboard.writeText(text).then(() => {
+       alert('Настройки скопированы в буфер обмена');
+   });
+}
+
+// Показать/скрыть пароли
+document.querySelectorAll('input[type="password"]').forEach(input => {
+   const container = input.parentElement;
+   if (container.classList.contains('input-group')) {
+       const toggleBtn = document.createElement('button');
+       toggleBtn.className = 'btn btn-outline-secondary';
+       toggleBtn.type = 'button';
+       toggleBtn.innerHTML = '<i class="fas fa-eye"></i>';
+       
+       toggleBtn.addEventListener('click', function() {
+           const isPassword = input.type === 'password';
+           input.type = isPassword ? 'text' : 'password';
+           this.innerHTML = isPassword ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+       });
+       
+       container.appendChild(toggleBtn);
+   }
+});
+
+// Проверка соединения с 1C при вводе данных
+let connectionCheckTimeout;
+document.getElementById('1c_server').addEventListener('input', function() {
+   clearTimeout(connectionCheckTimeout);
+   connectionCheckTimeout = setTimeout(() => {
+       const server = this.value;
+       if (server) {
+           checkConnection('1c', {server: server});
+       }
+   }, 2000);
+});
+
+function checkConnection(type, params) {
+   fetch(`/api/check-connection/${type}/`, {
+       method: 'POST',
+       headers: {
+           'Content-Type': 'application/json',
+           'X-CSRFToken': csrftoken
+       },
+       body: JSON.stringify(params)
+   })
+   .then(response => response.json())
+   .then(data => {
+       const indicator = document.getElementById(`${type}_connection_status`);
+       if (!indicator) {
+           const input = document.getElementById(`${type}_server`);
+           const statusDiv = document.createElement('div');
+           statusDiv.id = `${type}_connection_status`;
+           statusDiv.className = 'form-text';
+           input.parentNode.appendChild(statusDiv);
+       }
+       
+       const statusEl = document.getElementById(`${type}_connection_status`);
+       if (data.success) {
+           statusEl.innerHTML = '<i class="fas fa-check-circle text-success me-1"></i>Соединение установлено';
+           statusEl.className = 'form-text text-success';
+       } else {
+           statusEl.innerHTML = '<i class="fas fa-times-circle text-danger me-1"></i>Ошибка соединения';
+           statusEl.className = 'form-text text-danger';
+       }
+   })
+   .catch(error => {
+       console.error('Connection check error:', error);
+   });
+}
+</script>
+{% endblock %}

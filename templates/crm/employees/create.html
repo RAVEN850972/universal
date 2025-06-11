@@ -1,0 +1,686 @@
+<!-- templates/crm/employees/create.html -->
+{% extends 'base.html' %}
+
+{% block title %}{% if employee %}Редактирование{% else %}Добавление{% endif %} сотрудника - {{ current_company.name }}{% endblock %}
+{% block page_title %}{% if employee %}Редактирование сотрудника{% else %}Новый сотрудник{% endif %}{% endblock %}
+{% block page_icon %}{% if employee %}edit{% else %}user-plus{% endif %}{% endblock %}
+
+{% block content %}
+<form method="post" id="employeeForm">
+    {% csrf_token %}
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Выбор типа добавления -->
+            {% if not employee %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-plus me-2"></i>Способ добавления
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="add_type" id="existing_user" value="existing" checked>
+                                <label class="form-check-label" for="existing_user">
+                                    <strong>Существующий пользователь</strong>
+                                    <br><small class="text-muted">Добавить уже зарегистрированного пользователя</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="add_type" id="new_user" value="new">
+                                <label class="form-check-label" for="new_user">
+                                    <strong>Новый пользователь</strong>
+                                    <br><small class="text-muted">Создать нового пользователя и добавить в команду</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Выбор существующего пользователя -->
+            <div class="card mb-4" id="existingUserCard" {% if employee %}style="display: none;"{% endif %}>
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-search me-2"></i>Поиск пользователя
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="userSearch" class="form-label">Поиск по email или имени</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input type="text" class="form-control" id="userSearch" 
+                                   placeholder="Введите email или имя пользователя">
+                            <button type="button" class="btn btn-outline-secondary" onclick="searchUsers()">
+                                Найти
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="userSearchResults" style="display: none;">
+                        <!-- Результаты поиска будут здесь -->
+                    </div>
+                    
+                    <input type="hidden" id="selectedUserId" name="existing_user_id">
+                </div>
+            </div>
+            
+            <!-- Создание нового пользователя -->
+            <div class="card mb-4" id="newUserCard" {% if employee %}style="display: none;"{% endif %}>
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-plus me-2"></i>Данные нового пользователя
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="username" class="form-label">
+                                Логин <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="username" name="username" 
+                                   {% if employee %}value="{{ employee.user.username }}"{% endif %}>
+                            <div class="form-text">Уникальный логин для входа в систему</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">
+                                Email <span class="text-danger">*</span>
+                            </label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   {% if employee %}value="{{ employee.user.email }}"{% endif %}>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="first_name" class="form-label">
+                                Имя <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="first_name" name="first_name" 
+                                   {% if employee %}value="{{ employee.user.first_name }}"{% endif %}>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="last_name" class="form-label">
+                                Фамилия <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="last_name" name="last_name" 
+                                   {% if employee %}value="{{ employee.user.last_name }}"{% endif %}>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label">Телефон</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" 
+                                   {% if employee %}value="{{ employee.user.phone }}"{% endif %}>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="password" class="form-label">
+                                {% if employee %}Новый пароль (оставьте пустым для сохранения текущего){% else %}Пароль <span class="text-danger">*</span>{% endif %}
+                            </label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="password" name="password">
+                                <button class="btn btn-outline-secondary" type="button" onclick="generatePassword()">
+                                    <i class="fas fa-random"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                                    <i class="fas fa-eye" id="passwordToggle"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">Минимум 8 символов</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Роль и зарплата -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-briefcase me-2"></i>Роль и зарплата
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="role" class="form-label">
+                                Роль <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="role" name="role" onchange="updateRoleDescription()" required>
+                                <option value="">Выберите роль</option>
+                                <option value="owner" {% if employee and employee.role == 'owner' %}selected{% endif %}>
+                                    Владелец
+                                </option>
+                                <option value="manager" {% if employee and employee.role == 'manager' %}selected{% endif %}>
+                                    Менеджер
+                                </option>
+                                <option value="executor" {% if employee and employee.role == 'executor' %}selected{% endif %}>
+                                    Исполнитель
+                                </option>
+                            </select>
+                            <div class="form-text" id="roleDescription">
+                                Выберите роль для отображения описания
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="salary_rate" class="form-label">
+                                Базовая ставка (₽)
+                            </label>
+                            <input type="number" class="form-control" id="salary_rate" name="salary_rate" 
+                                   step="0.01" min="0" 
+                                   {% if employee %}value="{{ employee.salary_rate }}"{% endif %}
+                                   oninput="calculateTotalSalary()">
+                            <div class="form-text">Фиксированная часть зарплаты</div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="commission_rate" class="form-label">
+                                Комиссия (%)
+                            </label>
+                            <input type="number" class="form-control" id="commission_rate" name="commission_rate" 
+                                   step="0.01" min="0" max="100" 
+                                   {% if employee %}value="{{ employee.commission_rate }}"{% endif %}
+                                   oninput="calculateTotalSalary()">
+                            <div class="form-text">Процент от выполненных заказов</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Калькулятор зарплаты -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-calculator me-2"></i>Калькулятор зарплаты
+                                    </h6>
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <small class="text-muted">Базовая ставка:</small><br>
+                                            <strong id="displayBaseSalary">0₽</strong>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">Комиссия при 100,000₽ оборота:</small><br>
+                                            <strong id="displayCommission" class="text-success">0₽</strong>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">Потенциальная зарплата:</small><br>
+                                            <strong id="displayTotalSalary" class="text-primary">0₽</strong>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <small class="text-muted">Мотивация:</small><br>
+                                            <div id="motivationLevel" class="progress" style="height: 20px;">
+                                                <div class="progress-bar" style="width: 0%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Дополнительные настройки -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cogs me-2"></i>Дополнительные настройки
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
+                                       {% if not employee or employee.is_active %}checked{% endif %}>
+                                <label class="form-check-label" for="is_active">
+                                    <strong>Активный сотрудник</strong>
+                                    <br><small class="text-muted">Может входить в систему и выполнять задачи</small>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="can_view_finances" name="can_view_finances">
+                                <label class="form-check-label" for="can_view_finances">
+                                    <strong>Доступ к финансам</strong>
+                                    <br><small class="text-muted">Может просматривать финансовые отчеты</small>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="send_notifications" name="send_notifications" checked>
+                                <label class="form-check-label" for="send_notifications">
+                                    <strong>Уведомления</strong>
+                                    <br><small class="text-muted">Получать уведомления о новых заказах</small>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="work_schedule" class="form-label">График работы</label>
+                                <select class="form-select" id="work_schedule" name="work_schedule">
+                                    <option value="full_time">Полный день</option>
+                                    <option value="part_time">Частичная занятость</option>
+                                    <option value="flexible">Гибкий график</option>
+                                    <option value="remote">Удаленная работа</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="notes" class="form-label">Примечания</label>
+                                <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                          placeholder="Дополнительная информация о сотруднике">{% if employee %}{{ employee.notes }}{% endif %}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Боковая панель -->
+        <div class="col-md-4">
+            <!-- Действия -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">Действия</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>
+                            {% if employee %}Сохранить изменения{% else %}Добавить сотрудника{% endif %}
+                        </button>
+                        
+                        {% if employee %}
+                        <a href="{% url 'employee_detail' employee.id %}" class="btn btn-outline-info">
+                            <i class="fas fa-eye me-2"></i>Просмотр
+                        </a>
+                        {% endif %}
+                        
+                        <a href="{% url 'employees_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>К списку сотрудников
+                        </a>
+                    </div>
+                    
+                    {% if not employee %}
+                    <hr>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="send_welcome" name="send_welcome" checked>
+                        <label class="form-check-label" for="send_welcome">
+                            Отправить приветственное письмо
+                        </label>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="create_another" name="create_another">
+                        <label class="form-check-label" for="create_another">
+                            Создать еще одного сотрудника
+                        </label>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Предустановки ролей -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-magic me-2"></i>Быстрые настройки
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-outline-warning btn-sm" onclick="applyManagerPreset()">
+                            <i class="fas fa-user-cog me-2"></i>Настройки менеджера
+                        </button>
+                        
+                        <button type="button" class="btn btn-outline-success btn-sm" onclick="applyExecutorPreset()">
+                            <i class="fas fa-users me-2"></i>Настройки исполнителя
+                        </button>
+                        
+                        <button type="button" class="btn btn-outline-info btn-sm" onclick="applySalesPreset()">
+                            <i class="fas fa-chart-line me-2"></i>Настройки продажника
+                        </button>
+                    </div>
+                    
+                    <div class="form-text mt-2">
+                        Применяют типичные настройки для выбранной роли
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Шаблоны зарплат -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-money-bill-wave me-2"></i>Рыночные ставки
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <small class="text-muted">Менеджер (Москва):</small><br>
+                        <strong>50,000 - 80,000₽</strong>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted">Исполнитель:</small><br>
+                        <strong>35,000 - 60,000₽</strong>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted">Комиссия стандартная:</small><br>
+                        <strong>5 - 15%</strong>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="text-center">
+                        <small class="text-muted">Данные на {{ "now"|date:"m.Y" }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+ </form>
+ {% endblock %}
+ 
+ {% block extra_js %}
+ <script>
+ // Переключение между типами добавления
+ document.querySelectorAll('input[name="add_type"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const existingCard = document.getElementById('existingUserCard');
+        const newCard = document.getElementById('newUserCard');
+        
+        if (this.value === 'existing') {
+            existingCard.style.display = 'block';
+            newCard.style.display = 'none';
+            clearNewUserForm();
+        } else {
+            existingCard.style.display = 'none';
+            newCard.style.display = 'block';
+            clearExistingUserSelection();
+        }
+    });
+ });
+ 
+ // Поиск пользователей
+ function searchUsers() {
+    const query = document.getElementById('userSearch').value.trim();
+    if (query.length < 3) {
+        alert('Введите минимум 3 символа для поиска');
+        return;
+    }
+    
+    fetch(`/api/users/search/?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+            displaySearchResults(data.users);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ошибка при поиске пользователей');
+        });
+ }
+ 
+ // Отображение результатов поиска
+ function displaySearchResults(users) {
+    const container = document.getElementById('userSearchResults');
+    
+    if (users.length === 0) {
+        container.innerHTML = `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Пользователи не найдены. Попробуйте изменить запрос или создайте нового пользователя.
+            </div>
+        `;
+    } else {
+        const resultsHtml = users.map(user => `
+            <div class="card mb-2 user-result" style="cursor: pointer;" onclick="selectUser(${user.id}, '${user.username}', '${user.email}', '${user.first_name}', '${user.last_name}')">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center">
+                        <div class="company-logo me-3" style="width: 40px; height: 40px; font-size: 16px;">
+                            ${user.first_name ? user.first_name.charAt(0).toUpperCase() : user.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <h6 class="mb-0">${user.first_name} ${user.last_name}</h6>
+                            <small class="text-muted">${user.email} • @${user.username}</small>
+                        </div>
+                        <div class="ms-auto">
+                            <i class="fas fa-chevron-right text-muted"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        container.innerHTML = resultsHtml;
+    }
+    
+    container.style.display = 'block';
+ }
+ 
+ // Выбор пользователя
+ function selectUser(id, username, email, firstName, lastName) {
+    document.getElementById('selectedUserId').value = id;
+    
+    // Подсвечиваем выбранного пользователя
+    document.querySelectorAll('.user-result').forEach(card => {
+        card.classList.remove('border-primary');
+    });
+    event.currentTarget.classList.add('border-primary');
+    
+    // Показываем информацию о выбранном пользователе
+    const info = document.createElement('div');
+    info.className = 'alert alert-success mt-3';
+    info.innerHTML = `
+        <i class="fas fa-check-circle me-2"></i>
+        <strong>Выбран пользователь:</strong> ${firstName} ${lastName} (${email})
+    `;
+    
+    const existingInfo = document.querySelector('.alert-success');
+    if (existingInfo) existingInfo.remove();
+    
+    document.getElementById('userSearchResults').appendChild(info);
+ }
+ 
+ // Очистка формы нового пользователя
+ function clearNewUserForm() {
+    ['username', 'email', 'first_name', 'last_name', 'phone', 'password'].forEach(field => {
+        const element = document.getElementById(field);
+        if (element) element.value = '';
+    });
+ }
+ 
+ // Очистка выбора существующего пользователя
+ function clearExistingUserSelection() {
+    document.getElementById('selectedUserId').value = '';
+    document.getElementById('userSearch').value = '';
+    document.getElementById('userSearchResults').style.display = 'none';
+ }
+ 
+ // Описания ролей
+ function updateRoleDescription() {
+    const role = document.getElementById('role').value;
+    const descriptions = {
+        'owner': 'Полный доступ ко всем функциям системы, управление компанией',
+        'manager': 'Управление заказами, клиентами, просмотр отчетов',
+        'executor': 'Выполнение заказов, просмотр назначенных задач'
+    };
+    
+    document.getElementById('roleDescription').textContent = descriptions[role] || 'Выберите роль для отображения описания';
+ }
+ 
+ // Расчет зарплаты
+ function calculateTotalSalary() {
+    const baseSalary = parseFloat(document.getElementById('salary_rate').value) || 0;
+    const commissionRate = parseFloat(document.getElementById('commission_rate').value) || 0;
+    
+    const commission = (100000 * commissionRate) / 100; // При обороте 100,000₽
+    const totalSalary = baseSalary + commission;
+    
+    document.getElementById('displayBaseSalary').textContent = baseSalary.toLocaleString() + '₽';
+    document.getElementById('displayCommission').textContent = commission.toLocaleString() + '₽';
+    document.getElementById('displayTotalSalary').textContent = totalSalary.toLocaleString() + '₽';
+    
+    // Обновляем уровень мотивации
+    const motivationPercent = Math.min(100, (totalSalary / 100000) * 100);
+    const progressBar = document.querySelector('#motivationLevel .progress-bar');
+    progressBar.style.width = motivationPercent + '%';
+    
+    if (motivationPercent < 30) {
+        progressBar.className = 'progress-bar bg-danger';
+    } else if (motivationPercent < 70) {
+        progressBar.className = 'progress-bar bg-warning';
+    } else {
+        progressBar.className = 'progress-bar bg-success';
+    }
+ }
+ 
+ // Предустановки ролей
+ function applyManagerPreset() {
+    document.getElementById('role').value = 'manager';
+    document.getElementById('salary_rate').value = '60000';
+    document.getElementById('commission_rate').value = '5';
+    document.getElementById('can_view_finances').checked = true;
+    updateRoleDescription();
+    calculateTotalSalary();
+ }
+ 
+ function applyExecutorPreset() {
+    document.getElementById('role').value = 'executor';
+    document.getElementById('salary_rate').value = '40000';
+    document.getElementById('commission_rate').value = '10';
+    document.getElementById('can_view_finances').checked = false;
+    updateRoleDescription();
+    calculateTotalSalary();
+ }
+ 
+ function applySalesPreset() {
+    document.getElementById('role').value = 'executor';
+    document.getElementById('salary_rate').value = '30000';
+    document.getElementById('commission_rate').value = '15';
+    document.getElementById('can_view_finances').checked = false;
+    updateRoleDescription();
+    calculateTotalSalary();
+ }
+ 
+ // Генерация пароля
+ function generatePassword() {
+    const length = 12;
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    let password = "";
+    
+    for (let i = 0; i < length; i++) {
+        password += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
+    
+    document.getElementById('password').value = password;
+    
+    // Показываем пароль на 3 секунды
+    const passwordField = document.getElementById('password');
+    const originalType = passwordField.type;
+    passwordField.type = 'text';
+    
+    setTimeout(() => {
+        passwordField.type = originalType;
+    }, 3000);
+ }
+ 
+ // Переключение видимости пароля
+ function togglePassword() {
+    const passwordField = document.getElementById('password');
+    const toggleIcon = document.getElementById('passwordToggle');
+    
+    if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        toggleIcon.classList.remove('fa-eye');
+        toggleIcon.classList.add('fa-eye-slash');
+    } else {
+        passwordField.type = 'password';
+        toggleIcon.classList.remove('fa-eye-slash');
+        toggleIcon.classList.add('fa-eye');
+    }
+ }
+ 
+ // Валидация формы
+ document.getElementById('employeeForm').addEventListener('submit', function(e) {
+    const addType = document.querySelector('input[name="add_type"]:checked');
+    
+    {% if not employee %}
+    if (addType && addType.value === 'existing') {
+        const selectedUserId = document.getElementById('selectedUserId').value;
+        if (!selectedUserId) {
+            e.preventDefault();
+            alert('Выберите пользователя из результатов поиска');
+            return;
+        }
+    } else {
+        // Проверка полей нового пользователя
+        const requiredFields = ['username', 'email', 'first_name', 'last_name', 'password'];
+        for (let field of requiredFields) {
+            const element = document.getElementById(field);
+            if (!element.value.trim()) {
+                e.preventDefault();
+                alert(`Заполните поле "${element.previousElementSibling.textContent}"`);
+                element.focus();
+                return;
+            }
+        }
+    }
+    {% endif %}
+    
+    // Проверка роли
+    const role = document.getElementById('role').value;
+    if (!role) {
+        e.preventDefault();
+        alert('Выберите роль сотрудника');
+        document.getElementById('role').focus();
+        return;
+    }
+    
+    // Показываем индикатор загрузки
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Сохранение...';
+    submitBtn.disabled = true;
+    
+    // Восстанавливаем кнопку через 10 секунд на случай ошибки
+    setTimeout(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }, 10000);
+ });
+ 
+ // Инициализация
+ document.addEventListener('DOMContentLoaded', function() {
+    {% if employee %}
+    // Показываем карточку редактирования для существующего сотрудника
+    document.getElementById('newUserCard').style.display = 'block';
+    {% endif %}
+    
+    updateRoleDescription();
+    calculateTotalSalary();
+    
+    // Поиск по Enter
+    document.getElementById('userSearch').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            searchUsers();
+        }
+    });
+ });
+ </script>
+ {% endblock %}

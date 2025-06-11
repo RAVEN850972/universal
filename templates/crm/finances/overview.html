@@ -1,0 +1,559 @@
+<!-- templates/crm/finances/overview.html -->
+{% extends 'base.html' %}
+
+{% block title %}Финансы - {{ current_company.name }}{% endblock %}
+{% block page_title %}Финансовый обзор{% endblock %}
+{% block page_icon %}money-bill-wave{% endblock %}
+
+{% block content %}
+<!-- Период выбора -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3" id="periodForm">
+            <div class="col-md-3">
+                <label for="period" class="form-label">Период</label>
+                <select class="form-select" id="period" name="period" onchange="changePeriod()">
+                    <option value="current_month" {% if request.GET.period == 'current_month' %}selected{% endif %}>
+                        Текущий месяц
+                    </option>
+                    <option value="last_month" {% if request.GET.period == 'last_month' %}selected{% endif %}>
+                        Прошлый месяц
+                    </option>
+                    <option value="current_quarter" {% if request.GET.period == 'current_quarter' %}selected{% endif %}>
+                        Текущий квартал
+                    </option>
+                    <option value="current_year" {% if request.GET.period == 'current_year' %}selected{% endif %}>
+                        Текущий год
+                    </option>
+                    <option value="custom" {% if request.GET.period == 'custom' %}selected{% endif %}>
+                        Произвольный период
+                    </option>
+                </select>
+            </div>
+            
+            <div class="col-md-3" id="dateFromContainer" {% if request.GET.period != 'custom' %}style="display: none;"{% endif %}>
+                <label for="date_from" class="form-label">С даты</label>
+                <input type="date" class="form-control" id="date_from" name="date_from" 
+                       value="{{ request.GET.date_from|default:'' }}">
+            </div>
+            
+            <div class="col-md-3" id="dateToContainer" {% if request.GET.period != 'custom' %}style="display: none;"{% endif %}>
+                <label for="date_to" class="form-label">По дату</label>
+                <input type="date" class="form-control" id="date_to" name="date_to" 
+                       value="{{ request.GET.date_to|default:'' }}">
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>Обновить
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Основные показатели -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card">
+            <div class="card-body text-center position-relative">
+                <i class="fas fa-arrow-up fa-2x mb-2"></i>
+                <h3 class="mb-1">{{ month_income|floatformat:0 }}₽</h3>
+                <small>Доходы</small>
+                <div class="position-absolute top-0 end-0 p-2">
+                    {% if income_change > 0 %}
+                    <small class="text-success">
+                        <i class="fas fa-arrow-up me-1"></i>+{{ income_change|floatformat:1 }}%
+                    </small>
+                    {% elif income_change < 0 %}
+                    <small class="text-danger">
+                        <i class="fas fa-arrow-down me-1"></i>{{ income_change|floatformat:1 }}%
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card warning">
+            <div class="card-body text-center position-relative">
+                <i class="fas fa-arrow-down fa-2x mb-2"></i>
+                <h3 class="mb-1">{{ month_expenses|floatformat:0 }}₽</h3>
+                <small>Расходы</small>
+                <div class="position-absolute top-0 end-0 p-2">
+                    {% if expense_change > 0 %}
+                    <small class="text-danger">
+                        <i class="fas fa-arrow-up me-1"></i>+{{ expense_change|floatformat:1 }}%
+                    </small>
+                    {% elif expense_change < 0 %}
+                    <small class="text-success">
+                        <i class="fas fa-arrow-down me-1"></i>{{ expense_change|floatformat:1 }}%
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card {% if balance >= 0 %}success{% else %}danger{% endif %}">
+            <div class="card-body text-center position-relative">
+                <i class="fas fa-{% if balance >= 0 %}plus{% else %}minus{% endif %} fa-2x mb-2"></i>
+                <h3 class="mb-1">{{ balance|floatformat:0 }}₽</h3>
+                <small>{% if balance >= 0 %}Прибыль{% else %}Убыток{% endif %}</small>
+                <div class="position-absolute bottom-0 start-0 p-2">
+                    <small>
+                        Маржа: {{ margin|floatformat:1 }}%
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card info">
+            <div class="card-body text-center position-relative">
+                <i class="fas fa-receipt fa-2x mb-2"></i>
+                <h3 class="mb-1">{{ transactions_count }}</h3>
+                <small>Операций</small>
+                <div class="position-absolute bottom-0 end-0 p-2">
+                    <small>
+                        Средняя: {{ average_transaction|floatformat:0 }}₽
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- График доходов/расходов -->
+    <div class="col-md-8 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Динамика доходов и расходов
+                </h5>
+                <div class="btn-group" role="group">
+                    <input type="radio" class="btn-check" name="chartType" id="lineChart" checked>
+                    <label class="btn btn-outline-primary btn-sm" for="lineChart">Линии</label>
+                    
+                    <input type="radio" class="btn-check" name="chartType" id="barChart">
+                    <label class="btn btn-outline-primary btn-sm" for="barChart">Столбцы</label>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="financeChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Структура расходов -->
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>Структура расходов
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="expensesChart" height="200"></canvas>
+                
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="d-flex align-items-center">
+                            <span class="badge bg-primary me-2" style="width: 12px; height: 12px;"></span>
+                            Зарплаты
+                        </span>
+                        <strong>{{ salary_expenses|floatformat:0 }}₽</strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="d-flex align-items-center">
+                            <span class="badge bg-warning me-2" style="width: 12px; height: 12px;"></span>
+                            Операционные
+                        </span>
+                        <strong>{{ operational_expenses|floatformat:0 }}₽</strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="d-flex align-items-center">
+                            <span class="badge bg-info me-2" style="width: 12px; height: 12px;"></span>
+                            Прочие
+                        </span>
+                        <strong>{{ other_expenses|floatformat:0 }}₽</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Последние транзакции и быстрые действия -->
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Последние операции
+                </h5>
+                <a href="{% url 'transactions_list' %}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-arrow-right me-1"></i>Все операции
+                </a>
+            </div>
+            <div class="card-body">
+                {% if recent_transactions %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Дата</th>
+                                <th>Тип</th>
+                                <th>Описание</th>
+                                <th>Сумма</th>
+                                <th>Связано с</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in recent_transactions %}
+                            <tr>
+                                <td>
+                                    <div>{{ transaction.transaction_date|date:"d.m.Y" }}</div>
+                                    <small class="text-muted">{{ transaction.transaction_date|date:"H:i" }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if transaction.transaction_type == 'income' %}success{% elif transaction.transaction_type == 'expense' %}danger{% elif transaction.transaction_type == 'salary' %}primary{% else %}secondary{% endif %}">
+                                        {{ transaction.get_transaction_type_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="text-truncate" style="max-width: 200px;">
+                                        {{ transaction.description|default:"Без описания" }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong class="text-{% if transaction.transaction_type == 'income' %}success{% else %}danger{% endif %}">
+                                        {% if transaction.transaction_type == 'income' %}+{% else %}-{% endif %}{{ transaction.amount|floatformat:0 }}₽
+                                    </strong>
+                                </td>
+                                <td>
+                                    {% if transaction.order %}
+                                    <a href="{% url 'order_detail' transaction.order.id %}" class="text-decoration-none">
+                                        <i class="fas fa-shopping-cart me-1"></i>
+                                        Заказ #{{ transaction.order.id }}
+                                    </a>
+                                    {% elif transaction.user %}
+                                    <span class="text-muted">
+                                        <i class="fas fa-user me-1"></i>
+                                        {{ transaction.user.get_full_name }}
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                    <h6 class="text-muted">Нет операций за выбранный период</h6>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Быстрые действия -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>Быстрые действия
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'transaction_add' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Добавить операцию
+                    </a>
+                    
+                    <a href="{% url 'salary_calculate' %}" class="btn btn-outline-success">
+                        <i class="fas fa-calculator me-2"></i>Рассчитать ЗП
+                    </a>
+                    
+                    <button class="btn btn-outline-info" onclick="exportFinanceReport()">
+                        <i class="fas fa-file-export me-2"></i>Экспорт отчета
+                    </button>
+                    
+                    <a href="{% url 'my_salary' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-user me-2"></i>Моя зарплата
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Финансовые цели -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-bullseye me-2"></i>Финансовые цели
+                </h6>
+            </div>
+            <div class="card-body">
+                <!-- Цель по доходам -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <small class="text-muted">Цель по доходам (месяц)</small>
+                        <small class="text-muted">{{ income_goal_percent|floatformat:0 }}%</small>
+                    </div>
+                    <div class="progress mb-2" style="height: 8px;">
+                        <div class="progress-bar bg-success" style="width: {{ income_goal_percent }}%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small>{{ month_income|floatformat:0 }}₽</small>
+                        <small>{{ income_goal|floatformat:0 }}₽</small>
+                    </div>
+                </div>
+                
+                <!-- Контроль расходов -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <small class="text-muted">Контроль расходов</small>
+                        <small class="text-muted">{{ expense_control_percent|floatformat:0 }}%</small>
+                    </div>
+                    <div class="progress mb-2" style="height: 8px;">
+                        <div class="progress-bar bg-{% if expense_control_percent > 100 %}danger{% elif expense_control_percent > 80 %}warning{% else %}info{% endif %}" 
+                             style="width: {{ expense_control_percent }}%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small>{{ month_expenses|floatformat:0 }}₽</small>
+                        <small>{{ expense_limit|floatformat:0 }}₽</small>
+                    </div>
+                </div>
+                
+                <!-- Прогноз -->
+                <div class="text-center">
+                    <small class="text-muted">Прогноз на конец месяца</small>
+                    <h6 class="text-{% if projected_balance >= 0 %}success{% else %}danger{% endif %}">
+                        {{ projected_balance|floatformat:0 }}₽
+                    </h6>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+
+// Проверяем, что Chart.js загружен
+if (typeof Chart === 'undefined') {
+    console.error('Chart.js не загружен! Проверьте подключение библиотеки.');
+} else {
+    console.log('Chart.js загружен успешно');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const financeCtx = document.getElementById('financeChart');
+    if (financeCtx && typeof Chart !== 'undefined') {
+        const financeChart = new Chart(financeCtx, {
+            type: 'line',
+            data: {
+                labels: {{ chart_labels|default:"[]"|safe }},
+                datasets: [{
+                    label: 'Доходы',
+                    data: {{ income_data|default:"[]"|safe }},
+                    borderColor: 'rgb(34, 197, 94)',
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }, {
+                    label: 'Расходы',
+                    data: {{ expense_data|default:"[]"|safe }},
+                    borderColor: 'rgb(239, 68, 68)',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString() + '₽';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // График структуры расходов
+    const expensesCtx = document.getElementById('expensesChart');
+    if (expensesCtx && typeof Chart !== 'undefined') {
+        const expensesChart = new Chart(expensesCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Зарплаты', 'Операционные', 'Прочие'],
+                datasets: [{
+                    data: [
+                        {{ salary_expenses|default:0 }}, 
+                        {{ operational_expenses|default:0 }}, 
+                        {{ other_expenses|default:0 }}
+                    ],
+                    backgroundColor: [
+                        'rgb(102, 126, 234)',
+                        'rgb(251, 191, 36)', 
+                        'rgb(59, 130, 246)'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+});
+
+// Переключение типа графика
+document.querySelectorAll('input[name="chartType"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        financeChart.config.type = this.id.replace('Chart', '');
+        financeChart.update();
+    });
+});
+
+// Изменение периода
+function changePeriod() {
+    const period = document.getElementById('period').value;
+    const dateFromContainer = document.getElementById('dateFromContainer');
+    const dateToContainer = document.getElementById('dateToContainer');
+    
+    if (period === 'custom') {
+        dateFromContainer.style.display = 'block';
+        dateToContainer.style.display = 'block';
+    } else {
+        dateFromContainer.style.display = 'none';
+        dateToContainer.style.display = 'none';
+        // Автоматически отправляем форму для стандартных периодов
+        document.getElementById('periodForm').submit();
+    }
+}
+
+// Экспорт финансового отчета
+function exportFinanceReport() {
+    const period = document.getElementById('period').value;
+    const dateFrom = document.getElementById('date_from').value;
+    const dateTo = document.getElementById('date_to').value;
+    
+    let url = '/api/finance/export/?format=excel';
+    url += `&period=${period}`;
+    
+    if (period === 'custom' && dateFrom && dateTo) {
+        url += `&date_from=${dateFrom}&date_to=${dateTo}`;
+    }
+    
+    window.open(url, '_blank');
+}
+
+// Автообновление данных каждые 5 минут
+setInterval(() => {
+    fetch('/api/finance/stats/')
+        .then(response => response.json())
+        .then(data => {
+            // Обновляем основные показатели
+            // Можно добавить анимацию изменений
+        })
+        .catch(error => console.error('Error:', error));
+}, 300000);
+
+// Уведомления о достижении целей
+{% if income_goal_percent >= 100 %}
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        const toast = document.createElement('div');
+        toast.className = 'alert alert-success position-fixed';
+        toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+       toast.innerHTML = `
+           <i class="fas fa-trophy me-2"></i>
+           <strong>Поздравляем!</strong> Цель по доходам достигнута!
+           <button type="button" class="btn-close ms-2" onclick="this.parentElement.remove()"></button>
+       `;
+       document.body.appendChild(toast);
+       
+       setTimeout(() => {
+           if (toast.parentElement) toast.remove();
+       }, 10000);
+   }, 1000);
+});
+{% endif %}
+
+{% if expense_control_percent > 100 %}
+document.addEventListener('DOMContentLoaded', function() {
+   setTimeout(() => {
+       const toast = document.createElement('div');
+       toast.className = 'alert alert-warning position-fixed';
+       toast.style.cssText = 'top: 70px; right: 20px; z-index: 9999;';
+       toast.innerHTML = `
+           <i class="fas fa-exclamation-triangle me-2"></i>
+           <strong>Внимание!</strong> Превышен лимит расходов на {{ expense_control_percent|floatformat:0 }}%
+           <button type="button" class="btn-close ms-2" onclick="this.parentElement.remove()"></button>
+       `;
+       document.body.appendChild(toast);
+       
+       setTimeout(() => {
+           if (toast.parentElement) toast.remove();
+       }, 15000);
+   }, 2000);
+});
+{% endif %}
+
+// Анимация счетчиков при загрузке страницы
+function animateCounters() {
+   const counters = document.querySelectorAll('.stats-card h3');
+   
+   counters.forEach(counter => {
+       const target = parseInt(counter.textContent.replace(/[^\d]/g, ''));
+       const increment = target / 50;
+       let current = 0;
+       
+       const timer = setInterval(() => {
+           current += increment;
+           if (current >= target) {
+               current = target;
+               clearInterval(timer);
+           }
+           
+           const formattedValue = Math.floor(current).toLocaleString() + '₽';
+           counter.textContent = formattedValue;
+       }, 20);
+   });
+}
+
+// Запускаем анимацию при загрузке
+document.addEventListener('DOMContentLoaded', animateCounters);
+</script>
+{% endblock %}
