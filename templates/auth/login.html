@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Вход - Universal Service CRM</title>
+   
+   <!-- Шрифты -->
+   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+   
+   <!-- Иконки -->
+   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+   
+   <style>
+       :root {
+           --primary-color: #4285f4;
+           --secondary-color: #34a853;
+           --text-primary: #202124;
+           --text-secondary: #5f6368;
+           --border-color: #e8eaed;
+           --background-light: #f8f9fa;
+           --shadow: 0 2px 10px rgba(0,0,0,0.1);
+           --border-radius: 12px;
+       }
+
+       * {
+           box-sizing: border-box;
+           margin: 0;
+           padding: 0;
+       }
+
+       body {
+           font-family: 'Inter', sans-serif;
+           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+           min-height: 100vh;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           padding: 20px;
+       }
+
+       .login-container {
+           background: white;
+           border-radius: var(--border-radius);
+           box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+           overflow: hidden;
+           width: 100%;
+           max-width: 1000px;
+           display: flex;
+           min-height: 600px;
+       }
+
+       .login-left {
+           flex: 1;
+           background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+           color: white;
+           padding: 60px 40px;
+           display: flex;
+           flex-direction: column;
+           justify-content: center;
+           position: relative;
+           overflow: hidden;
+       }
+
+       .login-left::before {
+           content: '';
+           position: absolute;
+           top: 0;
+           left: 0;
+           right: 0;
+           bottom: 0;
+           background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+           opacity: 0.3;
+       }
+
+       .login-brand {
+           position: relative;
+           z-index: 1;
+       }
+
+       .brand-logo {
+           font-size: 2.5rem;
+           margin-bottom: 16px;
+       }
+
+       .brand-title {
+           font-size: 2rem;
+           font-weight: 700;
+           margin-bottom: 16px;
+           line-height: 1.2;
+       }
+
+       .brand-subtitle {
+           font-size: 1.125rem;
+           opacity: 0.9;
+           margin-bottom: 40px;
+           line-height: 1.5;
+       }
+
+       .features-list {
+           list-style: none;
+           position: relative;
+           z-index: 1;
+       }
+
+       .features-list li {
+           display: flex;
+           align-items: center;
+           margin-bottom: 16px;
+           font-size: 1rem;
+           opacity: 0.9;
+       }
+
+       .features-list i {
+           margin-right: 12px;
+           font-size: 1.25rem;
+       }
+
+       .login-right {
+           flex: 1;
+           padding: 60px 40px;
+           display: flex;
+           flex-direction: column;
+           justify-content: center;
+       }
+
+       .login-form-container {
+           max-width: 400px;
+           margin: 0 auto;
+           width: 100%;
+       }
+
+       .login-title {
+           font-size: 1.75rem;
+           font-weight: 600;
+           color: var(--text-primary);
+           margin-bottom: 8px;
+           text-align: center;
+       }
+
+       .login-subtitle {
+           color: var(--text-secondary);
+           text-align: center;
+           margin-bottom: 40px;
+       }
+
+       .form-group {
+           margin-bottom: 24px;
+       }
+
+       .form-label {
+           display: block;
+           margin-bottom: 8px;
+           font-weight: 500;
+           color: var(--text-primary);
+       }
+
+       .form-control {
+           width: 100%;
+           padding: 16px 20px;
+           border: 2px solid var(--border-color);
+           border-radius: var(--border-radius);
+           font-size: 1rem;
+           transition: all 0.2s ease;
+           background: white;
+       }
+
+       .form-control:focus {
+           outline: none;
+           border-color: var(--primary-color);
+           box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+       }
+
+       .input-group {
+           position: relative;
+       }
+
+       .input-icon {
+           position: absolute;
+           left: 16px;
+           top: 50%;
+           transform: translateY(-50%);
+           color: var(--text-secondary);
+           font-size: 1.125rem;
+       }
+
+       .input-group .form-control {
+           padding-left: 50px;
+       }
+
+       .btn {
+           display: inline-flex;
+           align-items: center;
+           justify-content: center;
+           padding: 16px 32px;
+           border: none;
+           border-radius: var(--border-radius);
+           font-size: 1rem;
+           font-weight: 600;
+           text-decoration: none;
+           cursor: pointer;
+           transition: all 0.2s ease;
+           width: 100%;
+           margin-bottom: 24px;
+       }
+
+       .btn-primary {
+           background: var(--primary-color);
+           color: white;
+       }
+
+       .btn-primary:hover {
+           background: #3367d6;
+           transform: translateY(-2px);
+           box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+       }
+
+       .alert {
+           padding: 12px 16px;
+           border-radius: 8px;
+           margin-bottom: 24px;
+           display: flex;
+           align-items: center;
+           font-size: 0.875rem;
+       }
+
+       .alert-danger {
+           background: rgba(234, 67, 53, 0.1);
+           color: #ea4335;
+           border: 1px solid rgba(234, 67, 53, 0.2);
+       }
+
+       .alert i {
+           margin-right: 8px;
+       }
+
+       .demo-accounts {
+           background: var(--background-light);
+           border-radius: var(--border-radius);
+           padding: 20px;
+           margin-top: 20px;
+       }
+
+       .demo-title {
+           font-weight: 600;
+           margin-bottom: 16px;
+           color: var(--text-primary);
+           text-align: center;
+       }
+
+       .demo-account {
+           display: flex;
+           justify-content: space-between;
+           align-items: center;
+           padding: 8px 12px;
+           background: white;
+           border-radius: 6px;
+           margin-bottom: 8px;
+           font-size: 0.875rem;
+           border: 1px solid var(--border-color);
+       }
+
+       .demo-account:last-child {
+           margin-bottom: 0;
+       }
+
+       .demo-role {
+           font-weight: 500;
+           color: var(--text-primary);
+       }
+
+       .demo-credentials {
+           color: var(--text-secondary);
+           font-family: 'Courier New', monospace;
+       }
+
+       .footer-text {
+           text-align: center;
+           color: var(--text-secondary);
+           font-size: 0.875rem;
+           margin-top: 20px;
+       }
+
+       /* Адаптивность */
+       @media (max-width: 768px) {
+           .login-container {
+               flex-direction: column;
+               max-width: 400px;
+               min-height: auto;
+           }
+
+           .login-left {
+               padding: 40px 30px;
+               text-align: center;
+           }
+
+           .login-right {
+               padding: 40px 30px;
+           }
+
+           .brand-title {
+               font-size: 1.5rem;
+           }
+
+           .brand-subtitle {
+               font-size: 1rem;
+           }
+
+           .features-list {
+               display: none;
+           }
+       }
+
+       @media (max-width: 480px) {
+           body {
+               padding: 10px;
+           }
+
+           .login-left,
+           .login-right {
+               padding: 30px 20px;
+           }
+       }
+
+       /* Анимации */
+       @keyframes fadeInUp {
+           from {
+               opacity: 0;
+               transform: translateY(30px);
+           }
+           to {
+               opacity: 1;
+               transform: translateY(0);
+           }
+       }
+
+       .login-container {
+           animation: fadeInUp 0.6s ease;
+       }
+
+       .loading {
+           position: relative;
+           pointer-events: none;
+       }
+
+       .loading::after {
+           content: '';
+           position: absolute;
+           top: 50%;
+           left: 50%;
+           width: 20px;
+           height: 20px;
+           margin: -10px 0 0 -10px;
+           border: 2px solid transparent;
+           border-top: 2px solid white;
+           border-radius: 50%;
+           animation: spin 1s linear infinite;
+       }
+
+       @keyframes spin {
+           0% { transform: rotate(0deg); }
+           100% { transform: rotate(360deg); }
+       }
+   </style>
+</head>
+<body>
+   <div class="login-container">
+       <!-- Левая часть с брендингом -->
+       <div class="login-left">
+           <div class="login-brand">
+               <div class="brand-logo">
+                   <i class="fas fa-tools"></i>
+               </div>
+               <h1 class="brand-title">Universal Service CRM</h1>
+               <p class="brand-subtitle">
+                   Современная система управления сервисным бизнесом
+               </p>
+           </div>
+           
+           <ul class="features-list">
+               <li>
+                   <i class="fas fa-clipboard-list"></i>
+                   Управление заказами и задачами
+               </li>
+               <li>
+                   <i class="fas fa-users"></i>
+                   База клиентов и сотрудников
+               </li>
+               <li>
+                   <i class="fas fa-chart-bar"></i>
+                   Финансовая отчетность
+               </li>
+               <li>
+                   <i class="fas fa-mobile-alt"></i>
+                   Мобильная версия
+               </li>
+               <li>
+                   <i class="fas fa-shield-alt"></i>
+                   Безопасность данных
+               </li>
+           </ul>
+       </div>
+
+       <!-- Правая часть с формой входа -->
+       <div class="login-right">
+           <div class="login-form-container">
+               <h2 class="login-title">Добро пожаловать!</h2>
+               <p class="login-subtitle">Войдите в свой аккаунт для продолжения</p>
+
+               <!-- Сообщения об ошибках -->
+               {% if messages %}
+                   {% for message in messages %}
+                       <div class="alert alert-{{ message.tags }}">
+                           <i class="fas fa-exclamation-triangle"></i>
+                           {{ message }}
+                       </div>
+                   {% endfor %}
+               {% endif %}
+
+               <!-- Форма входа -->
+               <form method="post" id="loginForm">
+                   {% csrf_token %}
+                   
+                   <div class="form-group">
+                       <label for="username" class="form-label">Логин</label>
+                       <div class="input-group">
+                           <i class="input-icon fas fa-user"></i>
+                           <input type="text" 
+                                  id="username" 
+                                  name="username" 
+                                  class="form-control" 
+                                  placeholder="Введите ваш логин"
+                                  required 
+                                  autocomplete="username">
+                       </div>
+                   </div>
+
+                   <div class="form-group">
+                       <label for="password" class="form-label">Пароль</label>
+                       <div class="input-group">
+                           <i class="input-icon fas fa-lock"></i>
+                           <input type="password" 
+                                  id="password" 
+                                  name="password" 
+                                  class="form-control" 
+                                  placeholder="Введите ваш пароль"
+                                  required 
+                                  autocomplete="current-password">
+                       </div>
+                   </div>
+
+                   <button type="submit" class="btn btn-primary" id="loginBtn">
+                       <i class="fas fa-sign-in-alt" style="margin-right: 8px;"></i>
+                       Войти в систему
+                   </button>
+               </form>
+
+               <!-- Демо аккаунты -->
+               <div class="demo-accounts">
+                   <div class="demo-title">Демо аккаунты для тестирования:</div>
+                   
+                   <div class="demo-account" onclick="fillCredentials('admin', 'admin123')">
+                       <span class="demo-role">
+                           <i class="fas fa-crown" style="color: #f39c12; margin-right: 4px;"></i>
+                           Администратор
+                       </span>
+                       <span class="demo-credentials">admin / admin123</span>
+                   </div>
+                   
+                   <div class="demo-account" onclick="fillCredentials('owner1', 'password123')">
+                       <span class="demo-role">
+                           <i class="fas fa-user-tie" style="color: #e74c3c; margin-right: 4px;"></i>
+                           Владелец
+                       </span>
+                       <span class="demo-credentials">owner1 / password123</span>
+                   </div>
+                   
+                   <div class="demo-account" onclick="fillCredentials('manager1', 'password123')">
+                       <span class="demo-role">
+                           <i class="fas fa-user-cog" style="color: #3498db; margin-right: 4px;"></i>
+                           Менеджер
+                       </span>
+                       <span class="demo-credentials">manager1 / password123</span>
+                   </div>
+                   
+                   <div class="demo-account" onclick="fillCredentials('executor1', 'password123')">
+                       <span class="demo-role">
+                           <i class="fas fa-user-check" style="color: #27ae60; margin-right: 4px;"></i>
+                           Исполнитель
+                       </span>
+                       <span class="demo-credentials">executor1 / password123</span>
+                   </div>
+               </div>
+
+               <p class="footer-text">
+                   © 2024 Universal Service CRM. Все права защищены.
+               </p>
+           </div>
+       </div>
+   </div>
+
+   <script>
+       // Заполнение учетных данных для демо
+       function fillCredentials(username, password) {
+           document.getElementById('username').value = username;
+           document.getElementById('password').value = password;
+           
+           // Добавляем небольшую анимацию
+           const inputs = document.querySelectorAll('.form-control');
+           inputs.forEach(input => {
+               input.style.transform = 'scale(1.02)';
+               input.style.borderColor = 'var(--primary-color)';
+               setTimeout(() => {
+                   input.style.transform = 'scale(1)';
+                   input.style.borderColor = 'var(--border-color)';
+               }, 200);
+           });
+       }
+
+       // Обработка отправки формы
+       document.getElementById('loginForm').addEventListener('submit', function(e) {
+           const btn = document.getElementById('loginBtn');
+           const username = document.getElementById('username').value;
+           const password = document.getElementById('password').value;
+
+           if (!username || !password) {
+               e.preventDefault();
+               showError('Пожалуйста, заполните все поля');
+               return;
+           }
+
+           // Показываем индикатор загрузки
+           btn.classList.add('loading');
+           btn.innerHTML = 'Вход в систему...';
+           btn.disabled = true;
+       });
+
+       // Функция показа ошибок
+       function showError(message) {
+           // Удаляем предыдущие ошибки
+           const existingAlerts = document.querySelectorAll('.alert');
+           existingAlerts.forEach(alert => alert.remove());
+
+           // Создаем новое уведомление об ошибке
+           const alert = document.createElement('div');
+           alert.className = 'alert alert-danger';
+           alert.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${message}`;
+           
+           const form = document.getElementById('loginForm');
+           form.parentNode.insertBefore(alert, form);
+
+           // Автоматически скрываем через 5 секунд
+           setTimeout(() => {
+               alert.remove();
+           }, 5000);
+       }
+
+       // Анимация при загрузке страницы
+       document.addEventListener('DOMContentLoaded', function() {
+           // Фокус на поле логина
+           document.getElementById('username').focus();
+
+           // Анимация появления элементов
+           const elements = document.querySelectorAll('.form-group, .btn, .demo-accounts');
+           elements.forEach((element, index) => {
+               element.style.opacity = '0';
+               element.style.transform = 'translateY(20px)';
+               
+               setTimeout(() => {
+                   element.style.transition = 'all 0.6s ease';
+                   element.style.opacity = '1';
+                   element.style.transform = 'translateY(0)';
+               }, index * 100);
+           });
+       });
+
+       // Обработка нажатия Enter
+       document.addEventListener('keypress', function(e) {
+           if (e.key === 'Enter') {
+               const activeElement = document.activeElement;
+               if (activeElement.id === 'username') {
+                   document.getElementById('password').focus();
+               } else if (activeElement.id === 'password') {
+                   document.getElementById('loginForm').submit();
+               }
+           }
+       });
+
+       // Валидация в реальном времени
+       document.getElementById('username').addEventListener('input', function() {
+           this.style.borderColor = this.value ? 'var(--primary-color)' : 'var(--border-color)';
+       });
+
+       document.getElementById('password').addEventListener('input', function() {
+           this.style.borderColor = this.value ? 'var(--primary-color)' : 'var(--border-color)';
+       });
+   </script>
+</body>
+</html>

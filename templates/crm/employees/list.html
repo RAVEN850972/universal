@@ -1,0 +1,482 @@
+<!-- templates/crm/employees/list.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Сотрудники - Universal Service CRM{% endblock %}
+
+{% block content %}
+<div class="employees-container">
+    <!-- Заголовок -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="page-info">
+                <h2 class="page-title">Сотрудники</h2>
+                <p class="page-subtitle">Управление командой компании</p>
+            </div>
+            <div class="page-actions">
+                <button class="btn btn-outline" data-modal-url="{% url 'employees_report_modal' %}" data-modal-title="Отчет по сотрудникам" data-modal-size="xl">
+                    <i class="fas fa-chart-bar"></i> Отчет
+                </button>
+                <button class="btn btn-primary" data-modal-url="{% url 'employee_create_modal' %}" data-modal-title="Добавить сотрудника" data-modal-size="lg">
+                    <i class="fas fa-user-plus"></i> Новый сотрудник
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="stats-grid">
+        <div class="stats-card">
+            <div class="stats-value">{{ employees|length }}</div>
+            <div class="stats-label">
+                <i class="fas fa-users"></i>
+                Всего сотрудников
+            </div>
+        </div>
+        <div class="stats-card success">
+            <div class="stats-value">{{ executors_count }}</div>
+            <div class="stats-label">
+                <i class="fas fa-user-check"></i>
+                Исполнителей
+            </div>
+        </div>
+        <div class="stats-card warning">
+            <div class="stats-value">{{ managers_count }}</div>
+            <div class="stats-label">
+                <i class="fas fa-user-cog"></i>
+                Менеджеров
+            </div>
+        </div>
+        <div class="stats-card">
+            <div class="stats-value">{{ avg_salary|floatformat:0 }}₽</div>
+            <div class="stats-label">
+                <i class="fas fa-wallet"></i>
+                Средняя ЗП
+            </div>
+        </div>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="filters-panel">
+        <form method="get" class="filters-form">
+            <div class="search-group">
+                <div class="search-input-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="text" name="search" class="search-input" placeholder="Поиск сотрудников..." value="{{ request.GET.search }}">
+                </div>
+            </div>
+            
+            <div class="filter-group">
+                <select name="role" class="filter-select">
+                    <option value="">Все роли</option>
+                    <option value="owner">Владельцы</option>
+                    <option value="manager">Менеджеры</option>
+                    <option value="executor">Исполнители</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <select name="sort" class="filter-select">
+                    <option value="user__first_name">По имени</option>
+                    <option value="-joined_at">По дате найма</option>
+                    <option value="-salary_rate">По зарплате</option>
+                    <option value="role">По роли</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-filter"></i> Применить
+            </button>
+        </form>
+    </div>
+
+    <!-- Список сотрудников -->
+    <div class="employees-grid">
+        {% for employee in employees %}
+        <div class="employee-card searchable-item" data-employee-id="{{ employee.id }}">
+            <!-- Заголовок карточки -->
+            <div class="employee-header">
+                <div class="employee-avatar">
+                    {{ employee.user.first_name.0|default:employee.user.username.0|upper }}
+                </div>
+                <div class="employee-info">
+                    <h3 class="employee-name">
+                        <a href="#" data-modal-url="{% url 'employee_detail_modal' employee.id %}" data-modal-title="{{ employee.user.get_full_name }}" data-modal-size="lg">
+                            {{ employee.user.get_full_name|default:employee.user.username }}
+                        </a>
+                    </h3>
+                    <div class="employee-role">
+                        <span class="role-badge role-{{ employee.role }}">
+                            <i class="fas fa-{% if employee.role == 'owner' %}crown{% elif employee.role == 'manager' %}user-cog{% else %}user-check{% endif %}"></i>
+                            {{ employee.get_role_display }}
+                        </span>
+                    </div>
+                </div>
+                <div class="employee-actions-menu">
+                    <div class="dropdown">
+                        <button class="btn-icon dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#" data-modal-url="{% url 'employee_detail_modal' employee.id %}" data-modal-title="{{ employee.user.get_full_name }}" data-modal-size="lg">
+                                <i class="fas fa-eye"></i> Подробнее
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" data-modal-url="{% url 'employee_edit_modal' employee.id %}" data-modal-title="Редактировать сотрудника" data-modal-size="lg">
+                                <i class="fas fa-edit"></i> Редактировать
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" data-modal-url="{% url 'salary_calculate_modal' %}?user={{ employee.user.id }}" data-modal-title="Рассчитать зарплату" data-modal-size="lg">
+                                <i class="fas fa-calculator"></i> Рассчитать ЗП
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="confirmDeactivate({{ employee.id }}, '{{ employee.user.get_full_name }}')">
+                                <i class="fas fa-user-slash"></i> Деактивировать
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Контактная информация -->
+            <div class="employee-contacts">
+                {% if employee.user.email %}
+                <div class="contact-item">
+                    <i class="fas fa-envelope"></i>
+                    <a href="mailto:{{ employee.user.email }}">{{ employee.user.email }}</a>
+                </div>
+                {% endif %}
+                
+                {% if employee.user.phone %}
+                <div class="contact-item">
+                    <i class="fas fa-phone"></i>
+                    <a href="tel:{{ employee.user.phone }}">{{ employee.user.phone }}</a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Зарплата и комиссия -->
+            <div class="employee-salary">
+                <div class="salary-item">
+                    <div class="salary-label">Оклад:</div>
+                    <div class="salary-value">{{ employee.salary_rate|floatformat:0 }}₽</div>
+                </div>
+                <div class="salary-item">
+                    <div class="salary-label">Комиссия:</div>
+                    <div class="salary-value">{{ employee.commission_rate }}%</div>
+                </div>
+            </div>
+
+            <!-- Статистика работы -->
+            {% if employee.role == 'executor' %}
+            <div class="employee-stats">
+                <div class="stat-item">
+                    <div class="stat-value">{{ employee.month_orders }}</div>
+                    <div class="stat-label">Заказов в месяце</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">{{ employee.completed_orders }}</div>
+                    <div class="stat-label">Завершено</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">{{ employee.total_commission|floatformat:0 }}₽</div>
+                    <div class="stat-label">Заработано</div>
+                </div>
+            </div>
+
+            <!-- Прогресс бар производительности -->
+            <div class="performance-bar">
+                {% with performance=employee.completed_orders|div:employee.month_orders|mul:100 %}
+                <div class="progress-label">
+                    Эффективность: {{ performance|default:0|floatformat:0 }}%
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: {{ performance|default:0 }}%"></div>
+                </div>
+                {% endwith %}
+            </div>
+            {% endif %}
+
+            <!-- Футер карточки -->
+            <div class="employee-footer">
+                <div class="employee-date">
+                    В команде с {{ employee.joined_at|date:"d.m.Y" }}
+                </div>
+                <div class="employee-status">
+                    {% if employee.is_active %}
+                    <span class="status-badge active">
+                        <i class="fas fa-circle"></i> Активен
+                    </span>
+                    {% else %}
+                    <span class="status-badge inactive">
+                        <i class="fas fa-circle"></i> Неактивен
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="empty-state">
+                <i class="fas fa-users"></i>
+                <h6>Нет сотрудников</h6>
+                <p>Добавьте сотрудников для работы с системой</p>
+                <button class="btn btn-primary" data-modal-url="{% url 'employee_create_modal' %}" data-modal-title="Добавить сотрудника" data-modal-size="lg">
+                    <i class="fas fa-user-plus"></i> Добавить первого сотрудника
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.employees-container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.employees-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+gap: 24px;
+margin-bottom: 32px;
+}
+.employee-card {
+background: white;
+border-radius: var(--border-radius);
+padding: 24px;
+box-shadow: var(--shadow);
+transition: all 0.2s ease;
+position: relative;
+overflow: hidden;
+}
+.employee-card:hover {
+transform: translateY(-4px);
+box-shadow: var(--shadow-hover);
+}
+.employee-header {
+display: flex;
+align-items: flex-start;
+margin-bottom: 16px;
+gap: 16px;
+}
+.employee-avatar {
+width: 56px;
+height: 56px;
+border-radius: 50%;
+background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+color: white;
+display: flex;
+align-items: center;
+justify-content: center;
+font-weight: 600;
+font-size: 1.5rem;
+flex-shrink: 0;
+}
+.employee-info {
+flex: 1;
+}
+.employee-name {
+margin: 0 0 8px 0;
+font-size: 1.125rem;
+font-weight: 600;
+}
+.employee-name a {
+color: var(--text-primary);
+text-decoration: none;
+}
+.employee-name a:hover {
+color: var(--primary-color);
+}
+.role-badge {
+display: inline-flex;
+align-items: center;
+gap: 6px;
+padding: 4px 12px;
+border-radius: 20px;
+font-size: 0.75rem;
+font-weight: 500;
+text-transform: uppercase;
+letter-spacing: 0.5px;
+}
+.role-badge.role-owner {
+background: rgba(231, 76, 60, 0.1);
+color: #e74c3c;
+}
+.role-badge.role-manager {
+background: rgba(52, 152, 219, 0.1);
+color: #3498db;
+}
+.role-badge.role-executor {
+background: rgba(39, 174, 96, 0.1);
+color: #27ae60;
+}
+.employee-actions-menu {
+position: absolute;
+top: 16px;
+right: 16px;
+}
+.employee-contacts {
+margin-bottom: 16px;
+}
+.contact-item {
+display: flex;
+align-items: center;
+margin-bottom: 8px;
+font-size: 0.875rem;
+color: var(--text-secondary);
+}
+.contact-item:last-child {
+margin-bottom: 0;
+}
+.contact-item i {
+width: 16px;
+margin-right: 8px;
+color: var(--primary-color);
+}
+.contact-item a {
+color: inherit;
+text-decoration: none;
+}
+.contact-item a:hover {
+color: var(--primary-color);
+}
+.employee-salary {
+display: flex;
+justify-content: space-between;
+margin-bottom: 16px;
+padding: 12px;
+background: var(--light-color);
+border-radius: 8px;
+}
+.salary-item {
+text-align: center;
+}
+.salary-label {
+font-size: 0.75rem;
+color: var(--text-muted);
+margin-bottom: 4px;
+}
+.salary-value {
+font-weight: 600;
+color: var(--text-primary);
+}
+.employee-stats {
+display: flex;
+justify-content: space-between;
+margin-bottom: 16px;
+padding: 12px;
+background: rgba(52, 168, 83, 0.05);
+border-radius: 8px;
+border-left: 4px solid var(--secondary-color);
+}
+.stat-item {
+text-align: center;
+}
+.stat-value {
+font-weight: 600;
+color: var(--text-primary);
+margin-bottom: 4px;
+}
+.stat-label {
+font-size: 0.625rem;
+color: var(--text-muted);
+text-transform: uppercase;
+letter-spacing: 0.5px;
+}
+.performance-bar {
+margin-bottom: 16px;
+}
+.progress-label {
+font-size: 0.75rem;
+color: var(--text-secondary);
+margin-bottom: 8px;
+display: flex;
+justify-content: center;
+}
+.progress-bar {
+width: 100%;
+height: 6px;
+background: var(--border-color);
+border-radius: 3px;
+overflow: hidden;
+}
+.progress-fill {
+height: 100%;
+background: linear-gradient(90deg, var(--secondary-color), var(--primary-color));
+border-radius: 3px;
+transition: width 0.3s ease;
+}
+.employee-footer {
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding-top: 12px;
+border-top: 1px solid var(--border-color);
+}
+.employee-date {
+font-size: 0.75rem;
+color: var(--text-muted);
+}
+.status-badge {
+display: flex;
+align-items: center;
+gap: 4px;
+font-size: 0.625rem;
+font-weight: 500;
+text-transform: uppercase;
+letter-spacing: 0.5px;
+}
+.status-badge.active {
+color: var(--secondary-color);
+}
+.status-badge.inactive {
+color: var(--text-muted);
+}
+.status-badge i {
+font-size: 0.5rem;
+}
+/* Адаптивность */
+@media (max-width: 768px) {
+.employees-grid {
+grid-template-columns: 1fr;
+}
+
+.employee-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.employee-actions-menu {
+    position: static;
+    margin-top: 12px;
+}
+
+.employee-salary,
+.employee-stats {
+    flex-direction: column;
+    gap: 8px;
+}
+
+.salary-item,
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.salary-label,
+.stat-label {
+    text-align: left;
+}
+</style>
+
+<script>
+function confirmDeactivate(employeeId, employeeName) {
+    if (confirm(`Вы уверены, что хотите деактивировать сотрудника "${employeeName}"?`)) {
+        // Здесь будет логика деактивации сотрудника
+        console.log('Deactivate employee:', employeeId);
+    }
+}
+</script>
+{% endblock %}

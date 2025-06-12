@@ -1,0 +1,659 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Заказы - Universal Service CRM{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/kanban.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="orders-container">
+    <!-- Заголовок и фильтры -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="page-info">
+                <h2 class="page-title">
+                    {% if is_executor %}Мои заказы{% else %}Заказы{% endif %}
+                </h2>
+                <p class="page-subtitle">
+                    {% if is_executor %}
+                        Заказы, назначенные на вас
+                    {% else %}
+                        Управление заказами компании
+                    {% endif %}
+                </p>
+            </div>
+            <div class="page-actions">
+                <div class="view-toggle">
+                    <button class="btn btn-sm btn-outline view-btn active" data-view="kanban">
+                        <i class="fas fa-th"></i> Канбан
+                    </button>
+                    <button class="btn btn-sm btn-outline view-btn" data-view="list">
+                        <i class="fas fa-list"></i> Список
+                    </button>
+                </div>
+                {% if is_manager %}
+                <button class="btn btn-primary" data-modal-url="{% url 'order_create_modal' %}" data-modal-title="Создать заказ" data-modal-size="xl">
+                    <i class="fas fa-plus"></i> Новый заказ
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="kanban-stats">
+        <div class="kanban-stat">
+            <div class="kanban-stat-value">{{ stats.new_count }}</div>
+            <div class="kanban-stat-label">Новые</div>
+        </div>
+        <div class="kanban-stat">
+            <div class="kanban-stat-value">{{ stats.in_progress_count }}</div>
+            <div class="kanban-stat-label">В работе</div>
+        </div>
+        <div class="kanban-stat">
+            <div class="kanban-stat-value">{{ stats.completed_count }}</div>
+            <div class="kanban-stat-label">Завершенные</div>
+        </div>
+        <div class="kanban-stat">
+            <div class="kanban-stat-value">{{ stats.total_amount|floatformat:0 }}₽</div>
+            <div class="kanban-stat-label">Общая сумма</div>
+        </div>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="kanban-filters">
+        <form method="get" class="filters-form">
+            <div class="filter-group">
+                <label class="filter-label">Клиент</label>
+                <input type="text" name="client" class="filter-select" placeholder="Поиск по клиенту" value="{{ request.GET.client }}">
+            </div>
+            
+            {% if not is_executor %}
+            <div class="filter-group">
+                <label class="filter-label">Исполнитель</label>
+                <select name="executor" class="filter-select">
+                    <option value="">Все исполнители</option>
+                    {% for executor in executors %}
+                    <option value="{{ executor.id }}" {% if request.GET.executor == executor.id|stringformat:"s" %}selected{% endif %}>
+                        {{ executor.get_full_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <div class="filter-group">
+                <label class="filter-label">Период</label>
+                <select name="period" class="filter-select">
+                    <option value="">Все время</option>
+                    <option value="today" {% if request.GET.period == 'today' %}selected{% endif %}>Сегодня</option>
+                    <option value="week" {% if request.GET.period == 'week' %}selected{% endif %}>Эта неделя</option>
+                    <option value="month" {% if request.GET.period == 'month' %}selected{% endif %}>Этот месяц</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Сумма от</label>
+                <input type="number" name="amount_from" class="filter-select" placeholder="0" value="{{ request.GET.amount_from }}">
+            </div>
+
+            <div class="filter-group">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter"></i> Применить
+                </button>
+                <a href="{% url 'orders_list' %}" class="btn btn-outline">
+                    <i class="fas fa-times"></i> Сбросить
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Канбан доска -->
+    <div class="view-container" id="kanban-view">
+        <div class="kanban-board">
+            <!-- Колонка "Новые" -->
+            <div class="kanban-column" data-status="new">
+                <div class="kanban-header">
+                    <div class="kanban-title">
+                        <i class="fas fa-plus-circle"></i>
+                        Новые
+                        <span class="kanban-count new">{{ new_orders|length }}</span>
+                    </div>
+                    {% if is_manager %}
+                    <button class="add-card-btn" data-modal-url="{% url 'order_create_modal' %}" data-modal-title="Создать заказ" data-modal-size="xl">
+                        <i class="fas fa-plus"></i> Добавить
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="kanban-cards">
+                    {% for order in new_orders %}
+                        {% include 'components/kanban_card.html' with order=order %}
+                    {% empty %}
+                    <div class="kanban-empty">
+                        <i class="fas fa-clipboard-list"></i>
+                        <p>Нет новых заказов</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Колонка "В работе" -->
+            <div class="kanban-column" data-status="in_progress">
+                <div class="kanban-header">
+                    <div class="kanban-title">
+                        <i class="fas fa-clock"></i>
+                        В работе
+                        <span class="kanban-count in-progress">{{ in_progress_orders|length }}</span>
+                    </div>
+                </div>
+                <div class="kanban-cards">
+                    {% for order in in_progress_orders %}
+                        {% include 'components/kanban_card.html' with order=order %}
+                    {% empty %}
+                    <div class="kanban-empty">
+                        <i class="fas fa-hourglass-half"></i>
+                        <p>Нет заказов в работе</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Колонка "Завершенные" -->
+            <div class="kanban-column" data-status="completed">
+                <div class="kanban-header">
+                    <div class="kanban-title">
+                        <i class="fas fa-check-circle"></i>
+                        Завершенные
+                        <span class="kanban-count completed">{{ completed_orders|length }}</span>
+                    </div>
+                </div>
+                <div class="kanban-cards">
+                    {% for order in completed_orders %}
+                        {% include 'components/kanban_card.html' with order=order %}
+                    {% empty %}
+                    <div class="kanban-empty">
+                        <i class="fas fa-check"></i>
+                        <p>Нет завершенных заказов</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Колонка "Отмененные" -->
+            <div class="kanban-column" data-status="cancelled">
+                <div class="kanban-header">
+                    <div class="kanban-title">
+                        <i class="fas fa-times-circle"></i>
+                        Отмененные
+                        <span class="kanban-count cancelled">{{ cancelled_orders|length }}</span>
+                    </div>
+                </div>
+                <div class="kanban-cards">
+                    {% for order in cancelled_orders %}
+                        {% include 'components/kanban_card.html' with order=order %}
+                    {% empty %}
+                    <div class="kanban-empty">
+                        <i class="fas fa-ban"></i>
+                        <p>Нет отмененных заказов</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Табличный вид -->
+    <div class="view-container" id="list-view" style="display: none;">
+        <div class="card">
+            <div class="card-body">
+                {% if orders %}
+                <div class="table-responsive">
+                    <table class="table data-table">
+                        <thead>
+                            <tr>
+                                <th data-sort="id">ID</th>
+                                <th data-sort="client">Клиент</th>
+                                <th data-sort="amount">Сумма</th>
+                                <th data-sort="status">Статус</th>
+                                <th data-sort="date">Дата</th>
+                                {% if not is_executor %}
+                                <th>Исполнители</th>
+                                {% endif %}
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr class="searchable-item">
+                                <td data-value="id">
+                                    <a href="#" data-modal-url="{% url 'order_detail_modal' order.id %}" data-modal-title="Заказ #{{ order.id }}" data-modal-size="xl">
+                                        #{{ order.id }}
+                                    </a>
+                                </td>
+                                <td data-value="client">{{ order.client.name }}</td>
+                                <td data-value="amount">{{ order.total_amount|floatformat:2 }}₽</td>
+                                <td data-value="status">
+                                    <span class="badge badge-{{ order.status }}">
+                                        {{ order.get_status_display }}
+                                    </span>
+                                </td>
+                                <td data-value="date">{{ order.order_date|date:"d.m.Y H:i" }}</td>
+                                {% if not is_executor %}
+                                <td>
+                                    <div class="executors-list">
+                                        {% for executor in order.executors.all %}
+                                        <div class="executor-avatar" title="{{ executor.user.get_full_name }}">
+                                            {{ executor.user.first_name.0|default:executor.user.username.0|upper }}
+                                        </div>
+                                        {% empty %}
+                                        <span class="text-muted">Не назначен</span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                                {% endif %}
+                                <td>
+                                    <div class="table-actions">
+                                        <button class="btn btn-sm btn-outline" data-modal-url="{% url 'order_detail_modal' order.id %}" data-modal-title="Заказ #{{ order.id }}" data-modal-size="xl" data-tooltip="Подробнее">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        {% if is_manager %}
+                                        <button class="btn btn-sm btn-outline" data-modal-url="{% url 'order_edit_modal' order.id %}" data-modal-title="Редактировать заказ" data-modal-size="xl" data-tooltip="Редактировать">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        {% endif %}
+                                        {% if order.status != 'completed' and order.status != 'cancelled' %}
+                                        <button class="btn btn-sm btn-success" onclick="quickActions.updateOrderStatus({{ order.id }}, 'completed')" data-tooltip="Завершить">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Пагинация -->
+                {% if orders.has_other_pages %}
+                <div class="pagination-container">
+                    <nav aria-label="Пагинация">
+                        <ul class="pagination">
+                            {% if orders.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1">Первая</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ orders.previous_page_number }}">Предыдущая</a>
+                            </li>
+                            {% endif %}
+
+                            <li class="page-item active">
+                                <span class="page-link">{{ orders.number }} из {{ orders.paginator.num_pages }}</span>
+                            </li>
+
+                            {% if orders.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ orders.next_page_number }}">Следующая</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ orders.paginator.num_pages }}">Последняя</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-clipboard-list"></i>
+                    <h6>Нет заказов</h6>
+                    <p>{% if is_executor %}У вас пока нет назначенных заказов{% else %}Заказы появятся здесь после создания{% endif %}</p>
+                    {% if is_manager %}
+                    <button class="btn btn-primary" data-modal-url="{% url 'order_create_modal' %}" data-modal-title="Создать заказ" data-modal-size="xl">
+                        <i class="fas fa-plus"></i> Создать первый заказ
+                    </button>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Переключение видов
+    const viewButtons = document.querySelectorAll('.view-btn');
+    const kanbanView = document.getElementById('kanban-view');
+    const listView = document.getElementById('list-view');
+
+    viewButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const view = this.dataset.view;
+            
+            // Обновляем активные кнопки
+            viewButtons.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Переключаем виды
+            if (view === 'kanban') {
+                kanbanView.style.display = 'block';
+                listView.style.display = 'none';
+                localStorage.setItem('ordersView', 'kanban');
+            } else {
+                kanbanView.style.display = 'none';
+                listView.style.display = 'block';
+                localStorage.setItem('ordersView', 'list');
+            }
+        });
+    });
+
+    // Восстанавливаем сохраненный вид
+    const savedView = localStorage.getItem('ordersView') || 'kanban';
+    const activeBtn = document.querySelector(`[data-view="${savedView}"]`);
+    if (activeBtn) {
+        activeBtn.click();
+    }
+
+    // Инициализация drag and drop для канбан доски
+    if (window.Sortable) {
+        const columns = document.querySelectorAll('.kanban-cards');
+        
+        columns.forEach(column => {
+            new Sortable(column, {
+                group: 'kanban',
+                animation: 150,
+                ghostClass: 'kanban-card-ghost',
+                chosenClass: 'kanban-card-chosen',
+                dragClass: 'kanban-card-drag',
+                onEnd: function(evt) {
+                    const orderId = evt.item.dataset.orderId;
+                    const newStatus = evt.to.closest('.kanban-column').dataset.status;
+                    const oldStatus = evt.from.closest('.kanban-column').dataset.status;
+                    
+                    if (newStatus !== oldStatus) {
+                        updateOrderStatus(orderId, newStatus, evt.item, evt.from);
+                    }
+                }
+            });
+        });
+    }
+
+    // Автообновление счетчиков
+    function updateCounters() {
+        document.querySelectorAll('.kanban-column').forEach(column => {
+            const count = column.querySelectorAll('.kanban-card').length;
+            const counter = column.querySelector('.kanban-count');
+            if (counter) {
+                counter.textContent = count;
+            }
+        });
+    }
+
+    // Обновление статуса заказа через drag and drop
+    async function updateOrderStatus(orderId, newStatus, cardElement, oldColumn) {
+        try {
+            const response = await fetch(`/quick/orders/${orderId}/status/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': utils.getCookie('csrftoken')
+                },
+                body: `status=${newStatus}`
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                // Обновляем класс карточки
+                cardElement.className = `kanban-card ${newStatus}`;
+                
+                // Обновляем счетчики
+                updateCounters();
+                
+                // Показываем уведомление
+                utils.showNotification('success', data.message);
+                
+                // Обновляем статистику
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            } else {
+                // Возвращаем карточку обратно при ошибке
+                oldColumn.appendChild(cardElement);
+                utils.showNotification('error', data.error || 'Ошибка обновления статуса');
+            }
+        } catch (error) {
+            // Возвращаем карточку обратно при ошибке
+            oldColumn.appendChild(cardElement);
+            utils.showNotification('error', 'Ошибка сети');
+            console.error('Update status error:', error);
+        }
+    }
+
+    // Поиск в реальном времени
+    const searchInput = document.querySelector('.search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase();
+            const cards = document.querySelectorAll('.kanban-card');
+            const rows = document.querySelectorAll('.searchable-item');
+            
+            // Поиск в канбан карточках
+            cards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.style.display = text.includes(query) ? 'block' : 'none';
+            });
+            
+            // Поиск в таблице
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? 'table-row' : 'none';
+            });
+        });
+    }
+
+    // Автоотправка формы фильтров при изменении
+    const filterSelects = document.querySelectorAll('.filter-select');
+    filterSelects.forEach(select => {
+        if (select.type !== 'text') {
+            select.addEventListener('change', function() {
+                this.form.submit();
+            });
+        }
+    });
+});
+</script>
+
+<style>
+.orders-container {
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.page-header {
+    margin-bottom: 32px;
+}
+
+.page-info h2 {
+    margin: 0 0 8px 0;
+    color: var(--text-primary);
+}
+
+.page-subtitle {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.page-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.view-toggle {
+    display: flex;
+    background: var(--light-color);
+    border-radius: var(--border-radius);
+    padding: 4px;
+}
+
+.view-btn {
+    border: none;
+    background: transparent;
+    padding: 8px 16px;
+    border-radius: calc(var(--border-radius) - 4px);
+    transition: all 0.2s ease;
+}
+
+.view-btn.active {
+    background: white;
+    color: var(--primary-color);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.filters-form {
+    display: flex;
+    align-items: end;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.executors-list {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.table-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.kanban-card-ghost {
+    opacity: 0.5;
+}
+
+.kanban-card-chosen {
+    transform: rotate(2deg);
+}
+
+.kanban-card-drag {
+    transform: rotate(5deg);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.pagination-container {
+    margin-top: 24px;
+    display: flex;
+    justify-content: center;
+}
+
+.pagination {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 8px;
+}
+
+.page-item {
+    display: block;
+}
+
+.page-link {
+    display: block;
+    padding: 8px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.page-link:hover {
+    background: var(--light-color);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.page-item.active .page-link {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .page-header .d-flex {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+    }
+    
+    .page-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .kanban-board {
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .kanban-column {
+        min-width: auto;
+        max-height: 400px;
+    }
+    
+    .filters-form {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .filter-group {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .table-actions {
+        flex-direction: column;
+        gap: 4px;
+    }
+}
+
+@media (max-width: 576px) {
+    .kanban-stats {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .view-toggle {
+        order: 2;
+        width: 100%;
+    }
+    
+    .kanban-header {
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-start;
+    }
+    
+    .add-card-btn {
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+{% endblock %}

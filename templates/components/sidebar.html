@@ -1,0 +1,230 @@
+<!-- Боковая панель навигации -->
+<div class="sidebar">
+    <!-- Заголовок -->
+    <div class="sidebar-header">
+        <a href="{% url 'dashboard' %}" class="sidebar-brand">
+            <i class="fas fa-tools"></i>
+            Universal CRM
+        </a>
+    </div>
+
+    <!-- Навигация -->
+    <nav class="sidebar-nav">
+        <!-- Главная -->
+        <div class="nav-item">
+            <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                <i class="fas fa-home"></i>
+                Главная
+            </a>
+        </div>
+
+        <!-- Заказы -->
+        <div class="nav-item">
+            <a href="{% url 'orders_list' %}" class="nav-link {% if 'orders' in request.path %}active{% endif %}">
+                <i class="fas fa-clipboard-list"></i>
+                Заказы
+                {% if is_executor %}
+                    <span class="badge badge-primary ms-auto">{{ user_active_orders_count }}</span>
+                {% endif %}
+            </a>
+        </div>
+
+        {% if is_manager %}
+        <!-- Клиенты (только для менеджеров и владельцев) -->
+        <div class="nav-item">
+            <a href="{% url 'clients_list' %}" class="nav-link {% if 'clients' in request.path %}active{% endif %}">
+                <i class="fas fa-users"></i>
+                Клиенты
+            </a>
+        </div>
+
+        <!-- Услуги -->
+        <div class="nav-item">
+            <a href="{% url 'services_list' %}" class="nav-link {% if 'services' in request.path %}active{% endif %}">
+                <i class="fas fa-cogs"></i>
+                Услуги
+            </a>
+        </div>
+        {% endif %}
+
+        {% if is_owner %}
+        <!-- Сотрудники (только для владельцев) -->
+        <div class="nav-item">
+            <a href="{% url 'employees_list' %}" class="nav-link {% if 'employees' in request.path %}active{% endif %}">
+                <i class="fas fa-user-tie"></i>
+                Сотрудники
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Финансы -->
+        <div class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle {% if 'finances' in request.path %}active{% endif %}" data-bs-toggle="dropdown">
+                <i class="fas fa-chart-bar"></i>
+                Финансы
+                <i class="fas fa-chevron-down ms-auto"></i>
+            </a>
+            <ul class="dropdown-menu">
+                {% if not is_executor %}
+                <li><a class="dropdown-item" href="{% url 'finances_overview' %}">
+                    <i class="fas fa-chart-line"></i> Обзор
+                </a></li>
+                <li><a class="dropdown-item" href="{% url 'transactions_list' %}">
+                    <i class="fas fa-exchange-alt"></i> Операции
+                </a></li>
+                <li><hr class="dropdown-divider"></li>
+                {% endif %}
+                <li><a class="dropdown-item" href="{% url 'my_salary' %}">
+                    <i class="fas fa-wallet"></i> Моя зарплата
+                    {% if user_unpaid_salary %}
+                        <span class="badge badge-warning ms-auto">{{ user_unpaid_salary|floatformat:0 }}₽</span>
+                    {% endif %}
+                </a></li>
+            </ul>
+        </div>
+
+        <!-- Отчеты (для менеджеров и владельцев) -->
+        {% if is_manager %}
+        <div class="nav-item dropdown">
+            <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="fas fa-chart-pie"></i>
+                Отчеты
+                <i class="fas fa-chevron-down ms-auto"></i>
+            </a>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#" data-modal-url="{% url 'orders_report_modal' %}" data-modal-title="Отчет по заказам" data-modal-size="xl">
+                    <i class="fas fa-clipboard-list"></i> По заказам
+                </a></li>
+                <li><a class="dropdown-item" href="#" data-modal-url="{% url 'my_performance_modal' %}" data-modal-title="Моя производительность" data-modal-size="lg">
+                    <i class="fas fa-user-chart"></i> Производительность
+                </a></li>
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Разделитель -->
+        <hr class="sidebar-divider">
+
+        <!-- Быстрые действия -->
+        <div class="nav-section-title">Быстрые действия</div>
+        
+        {% if is_manager %}
+        <div class="nav-item">
+            <a href="#" class="nav-link" data-modal-url="{% url 'order_create_modal' %}" data-modal-title="Создать заказ" data-modal-size="xl">
+                <i class="fas fa-plus-circle"></i>
+                Новый заказ
+            </a>
+        </div>
+
+        <div class="nav-item">
+            <a href="#" class="nav-link" data-modal-url="{% url 'client_create_modal' %}" data-modal-title="Добавить клиента" data-modal-size="lg">
+                <i class="fas fa-user-plus"></i>
+                Новый клиент
+            </a>
+        </div>
+        {% endif %}
+
+        {% if is_executor %}
+        <div class="nav-item">
+            <a href="{% url 'orders_list' %}?status=in_progress&executor={{ user.id }}" class="nav-link">
+                <i class="fas fa-tasks"></i>
+                Мои задачи
+                <span class="badge badge-warning ms-auto">{{ user_active_orders_count }}</span>
+            </a>
+        </div>
+        {% endif %}
+    </nav>
+
+    <!-- Футер боковой панели -->
+    <div class="sidebar-footer">
+        <div class="company-info">
+            <div class="company-name">{{ current_company.name }}</div>
+            <div class="user-role">{{ company_user.get_role_display }}</div>
+        </div>
+    </div>
+</div>
+
+<style>
+.sidebar-divider {
+    margin: 16px 24px;
+    border: none;
+    border-top: 1px solid var(--border-color);
+}
+
+.nav-section-title {
+    padding: 8px 24px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sidebar-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px 24px;
+    border-top: 1px solid var(--border-color);
+    background: white;
+}
+
+.company-info {
+    text-align: center;
+}
+
+.company-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.user-role {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.dropdown-menu {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-hover);
+    padding: 8px 0;
+    margin-top: 4px;
+    min-width: 200px;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: var(--light-color);
+    color: var(--primary-color);
+}
+
+.dropdown-item i {
+    width: 16px;
+    margin-right: 8px;
+}
+
+.dropdown-divider {
+    margin: 8px 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.badge {
+    font-size: 0.625rem;
+}
+
+.ms-auto {
+    margin-left: auto;
+}
+</style>

@@ -1,0 +1,557 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Мой профиль - Universal Service CRM{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <!-- Заголовок -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="page-info">
+                <h2 class="page-title">Мой профиль</h2>
+                <p class="page-subtitle">Управление личной информацией и настройками</p>
+            </div>
+            <div class="page-actions">
+                <button class="btn btn-primary" data-modal-url="{% url 'profile_edit_modal' %}" data-modal-title="Редактировать профиль" data-modal-size="lg">
+                    <i class="fas fa-edit"></i> Редактировать
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Левая колонка -->
+        <div class="col-md-4">
+            <!-- Карточка профиля -->
+            <div class="profile-card">
+                <div class="profile-avatar">
+                    {{ user.first_name.0|default:user.username.0|upper }}
+                </div>
+                <div class="profile-info">
+                    <h3 class="profile-name">{{ user.get_full_name|default:user.username }}</h3>
+                    <div class="profile-role">
+                        <span class="role-badge role-{{ company_user.role }}">
+                            <i class="fas fa-{% if company_user.role == 'owner' %}crown{% elif company_user.role == 'manager' %}user-cog{% else %}user-check{% endif %}"></i>
+                            {{ company_user.get_role_display }}
+                        </span>
+                    </div>
+                    <div class="profile-company">{{ current_company.name }}</div>
+                </div>
+                
+                <!-- Контакты -->
+                <div class="profile-contacts">
+                    {% if user.email %}
+                    <div class="contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <a href="mailto:{{ user.email }}">{{ user.email }}</a>
+                    </div>
+                    {% endif %}
+                    
+                    {% if user.phone %}
+                    <div class="contact-item">
+                        <i class="fas fa-phone"></i>
+                        <a href="tel:{{ user.phone }}">{{ user.phone }}</a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Статистика -->
+                <div class="profile-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ user_stats.days_in_company }}</div>
+                        <div class="stat-label">Дней в компании</div>
+                    </div>
+                    {% if company_user.role == 'executor' %}
+                    <div class="stat-item">
+                        <div class="stat-value">{{ user_stats.total_orders }}</div>
+                        <div class="stat-label">Всего заказов</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ user_stats.success_rate }}%</div>
+                        <div class="stat-label">Успешность</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Быстрые действия -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title">Быстрые действия</h5>
+                </div>
+                <div class="card-body">
+                    <div class="quick-actions">
+                        <button class="quick-action-btn" data-modal-url="{% url 'change_password_modal' %}" data-modal-title="Изменить пароль" data-modal-size="md">
+                            <i class="fas fa-key"></i>
+                            <span>Изменить пароль</span>
+                        </button>
+                        
+                        <a href="{% url 'my_salary' %}" class="quick-action-btn">
+                            <i class="fas fa-wallet"></i>
+                            <span>Моя зарплата</span>
+                        </a>
+                        
+                        {% if company_user.role == 'executor' %}
+                        <button class="quick-action-btn" data-modal-url="{% url 'my_performance_modal' %}" data-modal-title="Моя производительность" data-modal-size="lg">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Производительность</span>
+                        </button>
+                        {% endif %}
+                        
+                        <a href="{% url 'company_select' %}" class="quick-action-btn">
+                            <i class="fas fa-building"></i>
+                            <span>Сменить компанию</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Правая колонка -->
+        <div class="col-md-8">
+            <!-- Последняя активность -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Последняя активность</h5>
+                </div>
+                <div class="card-body">
+                    <div class="activity-timeline">
+                        {% for activity in recent_activities %}
+                        <div class="activity-item">
+                            <div class="activity-icon {{ activity.type }}">
+                                <i class="fas fa-{{ activity.icon }}"></i>
+                            </div>
+                            <div class="activity-content">
+                                <div class="activity-description">{{ activity.description }}</div>
+                                <div class="activity-time">{{ activity.timestamp|timesince }} назад</div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="empty-state-small">
+                            <i class="fas fa-history"></i>
+                            <p>Нет записей об активности</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Настройки уведомлений -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title">Настройки уведомлений</h5>
+                </div>
+                <div class="card-body">
+                    <form id="notificationSettings">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-title">Email уведомления</div>
+                                <div class="setting-description">Получать уведомления о новых заказах на email</div>
+                            </div>
+                            <div class="setting-control">
+                                <label class="switch">
+                                    <input type="checkbox" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-title">Уведомления о зарплате</div>
+                                <div class="setting-description">Напоминания о начислении зарплаты</div>
+                            </div>
+                            <div class="setting-control">
+                                <label class="switch">
+                                    <input type="checkbox" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-title">Telegram уведомления</div>
+                                <div class="setting-description">Уведомления в Telegram боте</div>
+                            </div>
+                            <div class="setting-control">
+                                <label class="switch">
+                                    <input type="checkbox">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Информация о безопасности -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title">Безопасность</h5>
+                </div>
+                <div class="card-body">
+                    <div class="security-info">
+                        <div class="security-item">
+                            <div class="security-label">Последний вход:</div>
+                            <div class="security-value">{{ user.last_login|date:"d.m.Y H:i" }}</div>
+                        </div>
+                        <div class="security-item">
+                            <div class="security-label">Дата регистрации:</div>
+                            <div class="security-value">{{ user.date_joined|date:"d.m.Y" }}</div>
+                        </div>
+                        <div class="security-item">
+                            <div class="security-label">Статус аккаунта:</div>
+                            <div class="security-value">
+                                <span class="status-badge active">
+                                    <i class="fas fa-shield-alt"></i> Активен
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="security-actions">
+                        <button class="btn btn-outline btn-sm" data-modal-url="{% url 'change_password_modal' %}" data-modal-title="Изменить пароль" data-modal-size="md">
+                            <i class="fas fa-key"></i> Изменить пароль
+                        </button>
+                        <button class="btn btn-outline btn-sm" onclick="downloadPersonalData()">
+                            <i class="fas fa-download"></i> Скачать данные
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.profile-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.profile-card {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 32px 24px;
+    text-align: center;
+    box-shadow: var(--shadow);
+}
+
+.profile-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    font-weight: 600;
+    margin: 0 auto 24px auto;
+}
+
+.profile-name {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.profile-role {
+    margin-bottom: 8px;
+}
+
+.profile-company {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: 24px;
+}
+
+.profile-contacts {
+    margin-bottom: 24px;
+    text-align: left;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    background: var(--light-color);
+    border-radius: 8px;
+}
+
+.contact-item:last-child {
+    margin-bottom: 0;
+}
+
+.contact-item i {
+    width: 20px;
+    margin-right: 12px;
+    color: var(--primary-color);
+}
+
+.contact-item a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.875rem;
+}
+
+.contact-item a:hover {
+    color: var(--primary-color);
+}
+
+.profile-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 16px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 16px 8px;
+    background: var(--light-color);
+    border-radius: 8px;
+}
+
+.stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    font-size: 0.625rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.quick-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.quick-action-btn {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--light-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    gap: 12px;
+}
+
+.quick-action-btn:hover {
+    background: white;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+.activity-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+    background: var(--light-color);
+    border-radius: 8px;
+}
+
+.activity-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+}
+
+.activity-icon.order {
+    background: var(--primary-color);
+}
+
+.activity-icon.client {
+    background: var(--secondary-color);
+}
+
+.activity-icon.finance {
+    background: var(--warning-color);
+}
+
+.activity-description {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.activity-time {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.setting-item:last-child {
+    border-bottom: none;
+}
+
+.setting-title {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.setting-description {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: var(--primary-color);
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.security-info {
+    margin-bottom: 24px;
+}
+
+.security-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.security-item:last-child {
+    border-bottom: none;
+}
+
+.security-label {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.security-value {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.security-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .profile-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .activity-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+    }
+    
+    .setting-item {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+    
+    .security-item {
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-start;
+    }
+    
+    .security-actions {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+function downloadPersonalData() {
+    // Здесь будет логика скачивания персональных данных
+    utils.showNotification('info', 'Подготовка данных для скачивания...');
+}
+
+// Обработка изменения настроек уведомлений
+document.querySelectorAll('#notificationSettings input[type="checkbox"]').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        // Здесь будет логика сохранения настроек
+        const setting = this.closest('.setting-item').querySelector('.setting-title').textContent;
+        const enabled = this.checked;
+        
+        console.log(`Setting "${setting}" changed to:`, enabled);
+        utils.showNotification('success', 'Настройки сохранены');
+    });
+});
+</script>
+{% endblock %}
