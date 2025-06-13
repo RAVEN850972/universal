@@ -1,0 +1,119 @@
+<!-- templates/base.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{% block meta_description %}Universal Service CRM - система управления сервисным бизнесом{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}CRM, управление, сервис, заказы, клиенты{% endblock %}">
+    
+    <title>{% block title %}Universal Service CRM{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
+    <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
+    
+    <!-- Основные стили -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/common.css' %}">
+    
+    <!-- Дополнительные стили для конкретных страниц -->
+    {% block extra_css %}{% endblock %}
+    
+    <!-- Preload критичных ресурсов -->
+    <link rel="preload" href="{% static 'css/common.css' %}" as="style">
+    <link rel="preload" href="{% static 'js/common.js' %}" as="script">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    <!-- Основной контент -->
+    {% block content %}
+        <!-- Контент для страниц авторизации -->
+        {% block auth_content %}{% endblock %}
+        
+        <!-- Контент для основных страниц -->
+        {% block main_content %}
+            <!-- Сайдбар -->
+            {% block sidebar %}
+                {% include 'components/sidebar.html' %}
+            {% endblock %}
+            
+            <!-- Основная область -->
+            <main class="main-content">
+                <!-- Заголовок -->
+                {% block header %}
+                    {% include 'components/header.html' %}
+                {% endblock %}
+                
+                <!-- Контент страницы -->
+                <div class="page-content">
+                    <!-- Хлебные крошки -->
+                    {% block breadcrumbs %}{% endblock %}
+                    
+                    <!-- Заголовок страницы -->
+                    {% if page_title or block.super %}
+                    <div class="page-header mb-4">
+                        <h1 class="page-title">
+                            {% if page_icon %}<i class="fas fa-{{ page_icon }} me-3"></i>{% endif %}
+                            {% block page_title %}{{ page_title }}{% endblock %}
+                        </h1>
+                        {% block page_actions %}{% endblock %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Флеш-сообщения Django -->
+                    {% if messages %}
+                    <div id="django-messages" class="mb-4">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible">
+                                <i class="fas fa-{% if message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'success' %}check-circle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                                {{ message }}
+                                <button type="button" class="alert-dismiss">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Контейнер для JS уведомлений -->
+                    <div id="alerts-container"></div>
+                    
+                    <!-- Основной контент страницы -->
+                    {% block page_content %}{% endblock %}
+                </div>
+            </main>
+        {% endblock %}
+    {% endblock %}
+    
+    <!-- Модальные окна -->
+    {% block modals %}{% endblock %}
+    
+    <!-- Основные скрипты -->
+    <script src="{% static 'js/common.js' %}"></script>
+    
+    <!-- Дополнительные скрипты -->
+    {% block extra_js %}{% endblock %}
+    
+    <!-- Инлайн скрипты -->
+    {% block inline_js %}{% endblock %}
+    
+    <!-- Контекстные данные для JavaScript -->
+    <script>
+        // Глобальные переменные для JavaScript
+        window.DJANGO_SETTINGS = {
+            DEBUG: {% if debug %}true{% else %}false{% endif %},
+            STATIC_URL: '{% get_static_prefix %}',
+            CSRF_TOKEN: '{{ csrf_token }}',
+            USER_ID: {% if user.is_authenticated %}{{ user.id }}{% else %}null{% endif %},
+            {% if current_company %}
+            COMPANY_ID: {{ current_company.id }},
+            COMPANY_NAME: '{{ current_company.name|escapejs }}',
+            {% endif %}
+            {% if company_user %}
+            USER_ROLE: '{{ company_user.role }}',
+            {% endif %}
+        };
+    </script>
+</body>
+</html>

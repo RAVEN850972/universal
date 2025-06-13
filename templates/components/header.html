@@ -1,0 +1,919 @@
+<!-- templates/components/header.html -->
+{% load static %}
+<header class="main-header">
+    <!-- Левая часть заголовка -->
+    <div class="header-left">
+        <!-- Кнопка меню для мобильных -->
+        <button class="btn-icon d-lg-none" onclick="toggleSidebar()" title="Меню">
+            <i class="fas fa-bars"></i>
+        </button>
+        
+        <!-- Хлебные крошки -->
+        {% block breadcrumbs %}
+        {% if breadcrumbs %}
+        <nav class="breadcrumbs">
+            <ol class="breadcrumb-list">
+                {% for crumb in breadcrumbs %}
+                    <li class="breadcrumb-item{% if forloop.last %} active{% endif %}">
+                        {% if not forloop.last and crumb.url %}
+                            <a href="{{ crumb.url }}">{{ crumb.title }}</a>
+                        {% else %}
+                            <span>{{ crumb.title }}</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ol>
+        </nav>
+        {% endif %}
+        {% endblock %}
+    </div>
+    
+    <!-- Центральная часть - поиск -->
+    <div class="header-center">
+        <div class="global-search">
+            <div class="search-container">
+                <i class="search-icon fas fa-search"></i>
+                <input type="text" 
+                       class="search-input" 
+                       placeholder="Поиск клиентов, заказов..." 
+                       id="globalSearch"
+                       autocomplete="off">
+                <div class="search-results" id="searchResults"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Правая часть заголовка -->
+    <div class="header-right">
+        <!-- Быстрые действия -->
+        <div class="quick-actions">
+            {% if company_user.role != 'executor' %}
+            <!-- Быстрое создание заказа -->
+            <button class="btn-icon" onclick="showQuickOrderModal()" title="Новый заказ">
+                <i class="fas fa-plus"></i>
+            </button>
+            {% endif %}
+            
+            <!-- Уведомления -->
+            <div class="notifications-dropdown">
+                <button class="btn-icon notifications-btn" onclick="toggleNotifications()" title="Уведомления">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationBadge">3</span>
+                </button>
+                <div class="notifications-panel" id="notificationsPanel">
+                    <div class="notifications-header">
+                        <h6>Уведомления</h6>
+                        <button class="btn-ghost btn-sm" onclick="markAllAsRead()">
+                            Отметить все как прочитанные
+                        </button>
+                    </div>
+                    <div class="notifications-list" id="notificationsList">
+                        <!-- Уведомления будут загружаться через AJAX -->
+                        <div class="notification-item unread">
+                            <div class="notification-icon">
+                                <i class="fas fa-clipboard-list text-primary"></i>
+                            </div>
+                            <div class="notification-content">
+                                <div class="notification-title">Новый заказ #1234</div>
+                                <div class="notification-text">От клиента "ООО Рога и копыта"</div>
+                                <div class="notification-time">5 минут назад</div>
+                            </div>
+                        </div>
+                        
+                        <div class="notification-item">
+                            <div class="notification-icon">
+                                <i class="fas fa-money-bill-wave text-success"></i>
+                            </div>
+                            <div class="notification-content">
+                                <div class="notification-title">Оплата получена</div>
+                                <div class="notification-text">Заказ #1230 - 15,000 ₽</div>
+                                <div class="notification-time">1 час назад</div>
+                            </div>
+                        </div>
+                        
+                        <div class="notification-item">
+                            <div class="notification-icon">
+                                <i class="fas fa-user-plus text-info"></i>
+                            </div>
+                            <div class="notification-content">
+                                <div class="notification-title">Новый клиент</div>
+                                <div class="notification-text">Регистрация "Ромашка ЛТД"</div>
+                                <div class="notification-time">2 часа назад</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="notifications-footer">
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Меню пользователя -->
+        <div class="user-menu-dropdown">
+            <button class="user-menu-btn" onclick="toggleUserMenu()" title="Профиль">
+                <div class="user-avatar">
+                    {% if user.first_name %}
+                        {{ user.first_name.0 }}{% if user.last_name %}{{ user.last_name.0 }}{% endif %}
+                    {% else %}
+                        {{ user.username.0|upper }}
+                    {% endif %}
+                </div>
+                <div class="user-info d-none d-md-block">
+                    <div class="user-name">
+                        {% if user.first_name or user.last_name %}
+                            {{ user.first_name }} {{ user.last_name }}
+                        {% else %}
+                            {{ user.username }}
+                        {% endif %}
+                    </div>
+                    <div class="user-role">{{ company_user.get_role_display }}</div>
+                </div>
+                <i class="fas fa-chevron-down user-menu-arrow"></i>
+            </button>
+            
+            <div class="user-menu-panel" id="userMenuPanel">
+                <div class="user-menu-header">
+                    <div class="user-avatar-large">
+                        {% if user.first_name %}
+                            {{ user.first_name.0 }}{% if user.last_name %}{{ user.last_name.0 }}{% endif %}
+                        {% else %}
+                            {{ user.username.0|upper }}
+                        {% endif %}
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name">
+                            {% if user.first_name or user.last_name %}
+                                {{ user.first_name }} {{ user.last_name }}
+                            {% else %}
+                                {{ user.username }}
+                            {% endif %}
+                        </div>
+                        <div class="user-email">{{ user.email|default:"" }}</div>
+                        <div class="user-role">{{ company_user.get_role_display }}</div>
+                    </div>
+                </div>
+                
+                <div class="user-menu-items">
+                    <a href="{% url 'profile' %}" class="user-menu-item">
+                        <i class="fas fa-user"></i>
+                        <span>Мой профиль</span>
+                    </a>
+                    
+                    {% if company_user.role == 'executor' %}
+                    <a href="{% url 'my_salary' %}" class="user-menu-item">
+                        <i class="fas fa-wallet"></i>
+                        <span>Моя зарплата</span>
+                    </a>
+                    {% endif %}
+                    
+                    <a href="{% url 'my_orders' %}" class="user-menu-item">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Мои заказы</span>
+                    </a>
+                    
+                    <a href="{% url 'notifications' %}" class="user-menu-item">
+                        <i class="fas fa-bell"></i>
+                        <span>Уведомления</span>
+                        {% if notification_count > 0 %}
+                        <span class="menu-badge">{{ notification_count }}</span>
+                        {% endif %}
+                    </a>
+                    
+                    <div class="user-menu-divider"></div>
+                    
+                    <!-- Переключение компании -->
+                    {% if user_companies_count > 1 %}
+                    <a href="{% url 'company_select' %}" class="user-menu-item">
+                        <i class="fas fa-building"></i>
+                        <span>Сменить компанию</span>
+                    </a>
+                    {% endif %}
+                    
+                    <a href="{% url 'settings' %}" class="user-menu-item">
+                        <i class="fas fa-cog"></i>
+                        <span>Настройки</span>
+                    </a>
+                    
+                    <div class="user-menu-divider"></div>
+                    
+                    <a href="{% url 'logout' %}" class="user-menu-item text-danger">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Выйти</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- CSS стили для заголовка -->
+<style>
+.main-header {
+    background: var(--bg-primary);
+    height: var(--header-height);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: var(--shadow-light);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky);
+}
+
+/* === ЛЕВАЯ ЧАСТЬ === */
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.breadcrumbs {
+    display: none;
+}
+
+.breadcrumb-list {
+    display: flex;
+    align-items: center;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 8px;
+}
+
+.breadcrumb-item {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.breadcrumb-item:not(:last-child)::after {
+    content: '/';
+    margin-left: 8px;
+    color: var(--text-muted);
+}
+
+.breadcrumb-item.active {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.breadcrumb-item a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: var(--transition-fast);
+}
+
+.breadcrumb-item a:hover {
+    color: var(--text-primary);
+}
+
+/* === ЦЕНТРАЛЬНАЯ ЧАСТЬ - ПОИСК === */
+.header-center {
+    flex: 1;
+    max-width: 400px;
+    margin: 0 32px;
+}
+
+.global-search {
+    width: 100%;
+}
+
+.search-container {
+    position: relative;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 16px 10px 40px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius-small);
+    font-size: 14px;
+    transition: var(--transition);
+    background: var(--bg-light);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--border-color-focus);
+    background: var(--bg-primary);
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+.search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-small);
+    box-shadow: var(--shadow-medium);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: var(--z-dropdown);
+    display: none;
+}
+
+.search-results.show {
+    display: block;
+}
+
+/* === ПРАВАЯ ЧАСТЬ === */
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.quick-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--text-secondary);
+    position: relative;
+}
+
+.btn-icon:hover {
+    background: var(--bg-light);
+    border-color: var(--border-color-focus);
+    color: var(--text-primary);
+}
+
+/* === УВЕДОМЛЕНИЯ === */
+.notifications-dropdown {
+    position: relative;
+}
+
+.notifications-btn {
+    position: relative;
+}
+
+.notification-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: #dc2626;
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 5px;
+    border-radius: 10px;
+    min-width: 16px;
+    text-align: center;
+    line-height: 1;
+}
+
+.notifications-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 320px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-heavy);
+    z-index: var(--z-dropdown);
+    display: none;
+    animation: slideIn 0.2s ease-out;
+}
+
+.notifications-panel.show {
+    display: block;
+}
+
+.notifications-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.notifications-header h6 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.notifications-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.notification-item {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    gap: 12px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.notification-item:hover {
+    background: var(--bg-light);
+}
+
+.notification-item.unread {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--bg-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.notification-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-title {
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 2px;
+    color: var(--text-primary);
+}
+
+.notification-text {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.notification-time {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.notifications-footer {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* === МЕНЮ ПОЛЬЗОВАТЕЛЯ === */
+.user-menu-dropdown {
+    position: relative;
+}
+
+.user-menu-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: var(--border-radius-small);
+    transition: var(--transition-fast);
+}
+
+.user-menu-btn:hover {
+    background: var(--bg-light);
+}
+
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--gradient-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-light);
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.user-info {
+    text-align: left;
+}
+
+.user-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.user-role {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.user-menu-arrow {
+    font-size: 12px;
+    color: var(--text-muted);
+    transition: var(--transition-fast);
+}
+
+.user-menu-btn.open .user-menu-arrow {
+    transform: rotate(180deg);
+}
+
+.user-menu-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 280px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-heavy);
+    z-index: var(--z-dropdown);
+    display: none;
+    animation: slideIn 0.2s ease-out;
+}
+
+.user-menu-panel.show {
+    display: block;
+}
+
+.user-menu-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    gap: 12px;
+}
+
+.user-avatar-large {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--gradient-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-light);
+    font-weight: 500;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.user-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.user-details .user-name {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.user-email {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    word-break: break-all;
+}
+
+.user-details .user-role {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.user-menu-items {
+    padding: 8px 0;
+}
+
+.user-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: var(--transition-fast);
+    position: relative;
+}
+
+.user-menu-item:hover {
+    background: var(--bg-light);
+    color: var(--text-primary);
+}
+
+.user-menu-item.text-danger {
+    color: #dc2626;
+}
+
+.user-menu-item.text-danger:hover {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.user-menu-item i {
+    width: 16px;
+    text-align: center;
+}
+
+.menu-badge {
+    margin-left: auto;
+    background: #dc2626;
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 10px;
+    min-width: 16px;
+    text-align: center;
+}
+
+.user-menu-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 8px 0;
+}
+
+/* === АДАПТИВНОСТЬ === */
+@media (max-width: 768px) {
+    .main-header {
+        padding: 0 16px;
+    }
+    
+    .header-center {
+        display: none;
+    }
+    
+    .user-info {
+        display: none !important;
+    }
+    
+    .user-menu-panel {
+        width: 260px;
+    }
+    
+    .notifications-panel {
+        width: 280px;
+        right: -60px;
+    }
+}
+
+@media (min-width: 992px) {
+    .breadcrumbs {
+        display: block;
+    }
+}
+</style>
+
+<!-- JavaScript для заголовка -->
+<script>
+let notificationsOpen = false;
+let userMenuOpen = false;
+
+function toggleNotifications() {
+    const panel = document.getElementById('notificationsPanel');
+    const userPanel = document.getElementById('userMenuPanel');
+    
+    // Закрываем меню пользователя если открыто
+    if (userMenuOpen) {
+        userPanel.classList.remove('show');
+        userMenuOpen = false;
+    }
+    
+    notificationsOpen = !notificationsOpen;
+    panel.classList.toggle('show', notificationsOpen);
+    
+    if (notificationsOpen) {
+        loadNotifications();
+    }
+}
+
+function toggleUserMenu() {
+    const panel = document.getElementById('userMenuPanel');
+    const btn = document.querySelector('.user-menu-btn');
+    const notificationsPanel = document.getElementById('notificationsPanel');
+    
+    // Закрываем уведомления если открыты
+    if (notificationsOpen) {
+        notificationsPanel.classList.remove('show');
+        notificationsOpen = false;
+    }
+    
+    userMenuOpen = !userMenuOpen;
+    panel.classList.toggle('show', userMenuOpen);
+    btn.classList.toggle('open', userMenuOpen);
+}
+
+async function loadNotifications() {
+    try {
+        const response = await makeRequest('/api/notifications/');
+        if (response.success) {
+            renderNotifications(response.data);
+        }
+    } catch (error) {
+        console.error('Failed to load notifications:', error);
+    }
+}
+
+function renderNotifications(notifications) {
+    const container = document.getElementById('notificationsList');
+    if (!container) return;
+    
+    if (notifications.length === 0) {
+        container.innerHTML = `
+            <div class="notification-item">
+                <div class="notification-content">
+                    <div class="notification-title">Нет новых уведомлений</div>
+                    <div class="notification-text">Все уведомления прочитаны</div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = notifications.map(notification => `
+        <div class="notification-item ${notification.is_read ? '' : 'unread'}" onclick="markAsRead(${notification.id})">
+            <div class="notification-icon">
+                <i class="${notification.icon} ${notification.color}"></i>
+            </div>
+            <div class="notification-content">
+                <div class="notification-title">${notification.title}</div>
+                <div class="notification-text">${notification.message}</div>
+                <div class="notification-time">${formatDate(notification.created_at, {timeStyle: 'short'})}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function markAsRead(notificationId) {
+    try {
+        await makeRequest(`/api/notifications/${notificationId}/read/`, {
+            method: 'POST'
+        });
+        
+        // Обновляем счетчик
+        updateNotificationBadge();
+    } catch (error) {
+        console.error('Failed to mark notification as read:', error);
+    }
+}
+
+async function markAllAsRead() {
+    try {
+        await makeRequest('/api/notifications/mark-all-read/', {
+            method: 'POST'
+        });
+        
+        // Обновляем интерфейс
+        const items = document.querySelectorAll('.notification-item.unread');
+        items.forEach(item => item.classList.remove('unread'));
+        
+        updateNotificationBadge();
+    } catch (error) {
+        console.error('Failed to mark all notifications as read:', error);
+    }
+}
+
+function updateNotificationBadge() {
+    const badge = document.getElementById('notificationBadge');
+    // В реальном приложении здесь будет AJAX запрос для получения количества
+    // Пока просто скрываем бейдж
+    if (badge) {
+        badge.style.display = 'none';
+    }
+}
+
+// Глобальный поиск
+let searchTimeout;
+const searchInput = document.getElementById('globalSearch');
+const searchResults = document.getElementById('searchResults');
+
+if (searchInput) {
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+        
+        if (query.length < 2) {
+            searchResults.classList.remove('show');
+            return;
+        }
+        
+        searchTimeout = setTimeout(() => {
+            performGlobalSearch(query);
+        }, 300);
+    });
+    
+    // Скрытие результатов при клике вне поиска
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.classList.remove('show');
+        }
+    });
+}
+
+async function performGlobalSearch(query) {
+    try {
+        const response = await makeRequest(`/api/search/?q=${encodeURIComponent(query)}`);
+        if (response.success) {
+            renderSearchResults(response.data);
+        }
+    } catch (error) {
+        console.error('Search failed:', error);
+    }
+}
+
+function renderSearchResults(results) {
+    if (!searchResults) return;
+    
+    if (results.length === 0) {
+        searchResults.innerHTML = '<div class="search-no-results">Ничего не найдено</div>';
+        searchResults.classList.add('show');
+        return;
+    }
+    
+    searchResults.innerHTML = results.map(result => `
+        <a href="${result.url}" class="search-result-item">
+            <div class="search-result-icon">
+                <i class="${result.icon}"></i>
+            </div>
+            <div class="search-result-content">
+                <div class="search-result-title">${result.title}</div>
+                <div class="search-result-subtitle">${result.subtitle}</div>
+            </div>
+        </a>
+    `).join('');
+    
+    searchResults.classList.add('show');
+}
+
+// Закрытие выпадающих меню при клике вне них
+document.addEventListener('click', function(e) {
+    const notificationsBtn = document.querySelector('.notifications-btn');
+    const notificationsPanel = document.getElementById('notificationsPanel');
+    const userMenuBtn = document.querySelector('.user-menu-btn');
+    const userMenuPanel = document.getElementById('userMenuPanel');
+    
+    // Закрытие уведомлений
+    if (notificationsOpen && 
+        !notificationsBtn.contains(e.target) && 
+        !notificationsPanel.contains(e.target)) {
+        toggleNotifications();
+    }
+    
+    // Закрытие меню пользователя
+    if (userMenuOpen && 
+        !userMenuBtn.contains(e.target) && 
+        !userMenuPanel.contains(e.target)) {
+        toggleUserMenu();
+    }
+});
+
+// Модальное окно быстрого создания заказа
+function showQuickOrderModal() {
+    // В реальном приложении здесь будет открытие модального окна
+    showModal('quickOrderModal');
+}
+
+// Периодическое обновление уведомлений
+setInterval(async function() {
+    try {
+        const response = await makeRequest('/api/notifications/count/');
+        if (response.success && response.data.count > 0) {
+            const badge = document.getElementById('notificationBadge');
+            if (badge) {
+                badge.textContent = response.data.count;
+                badge.style.display = 'block';
+            }
+        }
+    } catch (error) {
+        // Тихо игнорируем ошибки периодических запросов
+    }
+}, 30000); // Каждые 30 секунд
+</script>

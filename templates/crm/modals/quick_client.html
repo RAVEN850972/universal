@@ -1,0 +1,545 @@
+<!-- templates/crm/modals/quick_client.html -->
+<div class="modal-backdrop" id="quickClientModalBackdrop" style="display: none;" onclick="hideModal('quickClientModal')"></div>
+
+<div class="modal" id="quickClientModal" style="display: none;">
+    <div class="modal-header">
+        <h5 class="modal-title">
+            <i class="fas fa-user-plus me-2"></i>
+            Быстрое создание клиента
+        </h5>
+        <button type="button" class="modal-close" onclick="hideModal('quickClientModal')">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    
+    <div class="modal-body">
+        <form id="quickClientForm" novalidate>
+            {% csrf_token %}
+            
+            <!-- Тип клиента -->
+            <div class="form-group">
+                <label class="form-label">Тип клиента</label>
+                <div class="client-type-selector">
+                    <div class="type-option active" data-type="individual">
+                        <i class="fas fa-user"></i>
+                        <span>Физическое лицо</span>
+                    </div>
+                    <div class="type-option" data-type="company">
+                        <i class="fas fa-building"></i>
+                        <span>Компания</span>
+                    </div>
+                </div>
+                <input type="hidden" id="clientType" name="client_type" value="individual">
+            </div>
+            
+            <!-- Основная информация -->
+            <div id="individualFields">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="quickClientFirstName" class="form-label required">Имя</label>
+                            <div class="input-group">
+                                <i class="input-icon fas fa-user"></i>
+                                <input type="text" 
+                                       id="quickClientFirstName" 
+                                       name="first_name" 
+                                       class="form-control has-icon" 
+                                       placeholder="Введите имя"
+                                       required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="quickClientLastName" class="form-label">Фамилия</label>
+                            <input type="text" 
+                                   id="quickClientLastName" 
+                                   name="last_name" 
+                                   class="form-control" 
+                                   placeholder="Введите фамилию">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="companyFields" style="display: none;">
+                <div class="form-group">
+                    <label for="quickClientCompanyName" class="form-label required">Название компании</label>
+                    <div class="input-group">
+                        <i class="input-icon fas fa-building"></i>
+                        <input type="text" 
+                               id="quickClientCompanyName" 
+                               name="company_name" 
+                               class="form-control has-icon" 
+                               placeholder="Введите название компании">
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="quickClientContactPerson" class="form-label">Контактное лицо</label>
+                            <input type="text" 
+                                   id="quickClientContactPerson" 
+                                   name="contact_person" 
+                                   class="form-control" 
+                                   placeholder="ФИО контактного лица">
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="quickClientInn" class="form-label">ИНН</label>
+                            <input type="text" 
+                                   id="quickClientInn" 
+                                   name="inn" 
+                                   class="form-control" 
+                                   placeholder="ИНН организации"
+                                   pattern="[0-9]{10,12}"
+                                   maxlength="12">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Контактная информация -->
+            <div class="form-group">
+                <label for="quickClientPhone" class="form-label required">Телефон</label>
+                <div class="input-group">
+                    <i class="input-icon fas fa-phone"></i>
+                    <input type="tel" 
+                           id="quickClientPhone" 
+                           name="phone" 
+                           class="form-control has-icon" 
+                           placeholder="+7 (___) ___-__-__"
+                           required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="quickClientEmail" class="form-label">Email</label>
+                <div class="input-group">
+                    <i class="input-icon fas fa-envelope"></i>
+                    <input type="email" 
+                           id="quickClientEmail" 
+                           name="email" 
+                           class="form-control has-icon" 
+                           placeholder="example@domain.com">
+                </div>
+            </div>
+            
+            <!-- Адрес -->
+            <div class="form-group">
+                <label for="quickClientAddress" class="form-label">Адрес</label>
+                <textarea id="quickClientAddress" 
+                          name="address" 
+                          class="form-control" 
+                          rows="2"
+                          placeholder="Укажите адрес клиента..."></textarea>
+            </div>
+            
+            <!-- Источник и дополнительная информация -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="quickClientSource" class="form-label">Источник</label>
+                        <select id="quickClientSource" name="source" class="form-control">
+                            <option value="">Не указан</option>
+                            <option value="website">Сайт</option>
+                            <option value="phone">Телефонный звонок</option>
+                            <option value="referral">Рекомендация</option>
+                            <option value="social">Социальные сети</option>
+                            <option value="advertising">Реклама</option>
+                            <option value="repeat">Повторный клиент</option>
+                            <option value="other">Другое</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="quickClientPriority" class="form-label">Приоритет</label>
+                        <select id="quickClientPriority" name="priority" class="form-control">
+                            <option value="normal">Обычный</option>
+                            <option value="high">Высокий</option>
+                            <option value="vip">VIP</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Заметки -->
+            <div class="form-group">
+                <label for="quickClientNotes" class="form-label">Заметки</label>
+                <textarea id="quickClientNotes" 
+                          name="notes" 
+                          class="form-control" 
+                          rows="2"
+                          placeholder="Дополнительная информация о клиенте..."></textarea>
+            </div>
+            
+            <!-- Опции -->
+            <div class="form-group">
+                <div class="form-check-container">
+                    <div class="form-check">
+                        <input type="checkbox" 
+                               id="quickClientNotifications" 
+                               name="email_notifications" 
+                               class="form-check-input"
+                               checked>
+                        <label for="quickClientNotifications" class="form-check-label">
+                            Отправлять email-уведомления
+                        </label>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input type="checkbox" 
+                               id="quickClientCreateOrder" 
+                               name="create_order" 
+                               class="form-check-input">
+                        <label for="quickClientCreateOrder" class="form-check-label">
+                            Создать заказ для этого клиента
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="hideModal('quickClientModal')">
+            Отмена
+        </button>
+        <button type="submit" form="quickClientForm" class="btn btn-primary">
+            <i class="fas fa-user-plus me-1"></i>
+            Создать клиента
+        </button>
+    </div>
+</div>
+
+<style>
+/* Стили для модального окна быстрого создания клиента */
+.client-type-selector {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.type-option {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 12px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius-small);
+    cursor: pointer;
+    transition: var(--transition);
+    background: var(--bg-light);
+}
+
+.type-option:hover {
+    border-color: var(--border-color-focus);
+    background: var(--bg-primary);
+}
+
+.type-option.active {
+    border-color: var(--primary-color);
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.type-option i {
+    font-size: 24px;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+}
+
+.type-option.active i {
+    color: var(--primary-color);
+}
+
+.type-option span {
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+}
+
+/* Анимация переключения между типами клиентов */
+#individualFields,
+#companyFields {
+    transition: all 0.3s ease;
+}
+
+/* Маска для телефона */
+#quickClientPhone {
+    font-family: monospace;
+}
+
+/* Валидация ИНН */
+#quickClientInn:invalid {
+    border-color: #dc2626;
+}
+
+#quickClientInn:valid {
+    border-color: #059669;
+}
+
+/* Приоритет клиента */
+.form-control[name="priority"] option[value="vip"] {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+}
+
+.form-control[name="priority"] option[value="high"] {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+/* Подсказки для источников */
+.source-hint {
+    position: absolute;
+    bottom: -20px;
+    left: 0;
+    font-size: 11px;
+    color: var(--text-muted);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.form-group:hover .source-hint {
+    opacity: 1;
+}
+
+/* Адаптивность модального окна */
+@media (max-width: 768px) {
+    .client-type-selector {
+        flex-direction: column;
+    }
+    
+    .type-option {
+        flex-direction: row;
+        justify-content: flex-start;
+        padding: 12px 16px;
+        gap: 12px;
+    }
+    
+    .type-option i {
+        font-size: 20px;
+        margin-bottom: 0;
+    }
+}
+</style>
+
+<script>
+// Инициализация формы быстрого создания клиента
+document.addEventListener('DOMContentLoaded', function() {
+    const typeOptions = document.querySelectorAll('.type-option');
+    const clientTypeInput = document.getElementById('clientType');
+    const individualFields = document.getElementById('individualFields');
+    const companyFields = document.getElementById('companyFields');
+    const phoneInput = document.getElementById('quickClientPhone');
+    const innInput = document.getElementById('quickClientInn');
+    const form = document.getElementById('quickClientForm');
+    
+    // Переключение типа клиента
+    typeOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            const type = this.getAttribute('data-type');
+            
+            // Убираем активный класс со всех опций
+            typeOptions.forEach(opt => opt.classList.remove('active'));
+            
+            // Добавляем активный класс к выбранной опции
+            this.classList.add('active');
+            
+            // Обновляем скрытое поле
+            clientTypeInput.value = type;
+            
+            // Показываем/скрываем соответствующие поля
+            if (type === 'individual') {
+                individualFields.style.display = 'block';
+                companyFields.style.display = 'none';
+                
+                // Делаем поля физлица обязательными
+                document.getElementById('quickClientFirstName').required = true;
+                document.getElementById('quickClientCompanyName').required = false;
+            } else {
+                individualFields.style.display = 'none';
+                companyFields.style.display = 'block';
+                
+                // Делаем поля компании обязательными
+                document.getElementById('quickClientFirstName').required = false;
+                document.getElementById('quickClientCompanyName').required = true;
+            }
+        });
+    });
+    
+    // Маска для телефона
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function() {
+            let value = this.value.replace(/\D/g, '');
+            
+            if (value.startsWith('8')) {
+                value = '7' + value.substring(1);
+            }
+            
+            if (value.startsWith('7')) {
+                if (value.length >= 1) value = '+7 (' + value.substring(1);
+                if (value.length >= 7) value = value.substring(0, 7) + ') ' + value.substring(7);
+                if (value.length >= 12) value = value.substring(0, 12) + '-' + value.substring(12);
+                if (value.length >= 15) value = value.substring(0, 15) + '-' + value.substring(15, 17);
+            }
+            
+            this.value = value;
+        });
+        
+        phoneInput.addEventListener('keydown', function(e) {
+            // Разрешаем Backspace, Delete, Tab, Escape, Enter
+            if ([8, 9, 27, 13, 46].indexOf(e.keyCode) !== -1 ||
+                // Разрешаем Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                (e.keyCode === 65 && e.ctrlKey === true) ||
+                (e.keyCode === 67 && e.ctrlKey === true) ||
+                (e.keyCode === 86 && e.ctrlKey === true) ||
+                (e.keyCode === 88 && e.ctrlKey === true)) {
+                return;
+            }
+            
+            // Запрещаем все, кроме цифр
+            if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+                e.preventDefault();
+            }
+        });
+    }
+    
+    // Валидация ИНН
+    if (innInput) {
+        innInput.addEventListener('input', function() {
+            const value = this.value.replace(/\D/g, '');
+            this.value = value;
+            
+            // Простая валидация длины ИНН
+            const isValid = value.length === 10 || value.length === 12;
+            this.classList.toggle('valid', isValid && value.length > 0);
+            this.classList.toggle('invalid', !isValid && value.length > 0);
+        });
+    }
+    
+    // Валидация email
+    const emailInput = document.getElementById('quickClientEmail');
+    if (emailInput) {
+        emailInput.addEventListener('blur', function() {
+            if (this.value) {
+                const isValid = this.checkValidity();
+                this.classList.toggle('valid', isValid);
+                this.classList.toggle('invalid', !isValid);
+            }
+        });
+    }
+    
+    // Автоматическое создание заказа
+    const createOrderCheckbox = document.getElementById('quickClientCreateOrder');
+    if (createOrderCheckbox) {
+        createOrderCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                // Можем показать дополнительные поля для заказа
+                showOrderHint();
+            }
+        });
+    }
+    
+    function showOrderHint() {
+        const hint = document.createElement('div');
+        hint.className = 'form-text';
+        hint.textContent = 'После создания клиента откроется форма создания заказа';
+        createOrderCheckbox.parentNode.appendChild(hint);
+        
+        setTimeout(() => {
+            hint.remove();
+        }, 3000);
+    }
+    
+    // Обработка отправки формы
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Валидация формы
+        if (!this.checkValidity()) {
+            showAlert('Пожалуйста, заполните все обязательные поля', 'error');
+            return;
+        }
+        
+        const submitBtn = this.querySelector('button[type="submit"]');
+        setLoading(submitBtn, true);
+        
+        try {
+            const formData = new FormData(this);
+            
+            // Формируем полное имя для физлица
+            if (clientTypeInput.value === 'individual') {
+                const firstName = formData.get('first_name');
+                const lastName = formData.get('last_name');
+                formData.set('name', firstName + (lastName ? ' ' + lastName : ''));
+            } else {
+                formData.set('name', formData.get('company_name'));
+            }
+            
+            const response = await makeRequest('/api/clients/', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (response.success) {
+                showAlert('Клиент успешно создан!', 'success');
+                hideModal('quickClientModal');
+                
+                // Если нужно создать заказ
+                if (createOrderCheckbox.checked) {
+                    setTimeout(() => {
+                        showQuickOrderModal();
+                        // Предзаполняем клиента в форме заказа
+                        const orderClientInput = document.getElementById('quickOrderClient');
+                        if (orderClientInput) {
+                            orderClientInput.value = response.data.name;
+                            orderClientInput.setAttribute('data-client-id', response.data.id);
+                        }
+                    }, 500);
+                }
+                
+                // Обновляем статистику дашборда
+                if (typeof updateDashboardStats === 'function') {
+                    updateDashboardStats();
+                }
+            } else {
+                showAlert(response.error || 'Ошибка при создании клиента', 'error');
+            }
+        } catch (error) {
+            showAlert('Произошла ошибка при создании клиента', 'error');
+            console.error('Client creation error:', error);
+        } finally {
+            setLoading(submitBtn, false);
+        }
+    });
+});
+
+// Функция для показа модального окна создания клиента
+function showQuickClientModal() {
+    const modal = document.getElementById('quickClientModal');
+    const backdrop = document.getElementById('quickClientModalBackdrop');
+    
+    if (modal && backdrop) {
+        modal.style.display = 'block';
+        backdrop.style.display = 'block';
+        
+        // Фокус на первое поле
+        const firstInput = modal.querySelector('input:not([type="hidden"]):not([disabled])');
+        if (firstInput) {
+            setTimeout(() => firstInput.focus(), 100);
+        }
+        
+        // Блокируем скролл
+        document.body.style.overflow = 'hidden';
+    }
+}
+</script>
