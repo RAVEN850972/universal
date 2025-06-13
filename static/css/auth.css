@@ -1,0 +1,385 @@
+/* === СТИЛИ ДЛЯ СТРАНИЦ АВТОРИЗАЦИИ === */
+/* static/css/auth.css */
+
+@import url('common.css');
+
+/* === СТРАНИЦА ВХОДА === */
+body {
+    background: var(--gradient-accent);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 450px;
+}
+
+.login-card {
+    background: var(--bg-primary);
+    border-radius: var(--border-radius);
+    padding: 40px;
+    box-shadow: var(--shadow-heavy);
+    animation: fadeInUp 0.6s ease-out;
+    border: 1px solid var(--border-color);
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* === ЗАГОЛОВОК === */
+.login-header {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.logo {
+    width: 64px;
+    height: 64px;
+    background: var(--gradient-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    color: var(--text-light);
+    font-size: 24px;
+    box-shadow: var(--shadow-medium);
+    transition: var(--transition);
+}
+
+.logo:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-heavy);
+}
+
+.login-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+}
+
+.login-subtitle {
+    color: var(--text-secondary);
+    font-size: 16px;
+    margin-bottom: 0;
+    font-weight: 400;
+}
+
+/* === ФОРМА === */
+#loginForm {
+    margin-bottom: 0;
+}
+
+.form-group {
+    margin-bottom: 24px;
+}
+
+.form-control {
+    padding: 16px;
+    font-size: 16px;
+    border-radius: var(--border-radius-small);
+    transition: var(--transition);
+}
+
+.form-control:focus {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+.input-icon {
+    font-size: 14px;
+    left: 18px;
+}
+
+.form-control.has-icon {
+    padding-left: 50px;
+}
+
+/* === КНОПКА ВХОДА === */
+#loginBtn {
+    width: 100%;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: var(--border-radius-small);
+    background: var(--gradient-primary);
+    color: var(--text-light);
+    border: none;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+#loginBtn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-heavy);
+}
+
+#loginBtn:active {
+    transform: translateY(0);
+}
+
+#loginBtn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* === ДЕМО АККАУНТЫ === */
+.demo-section {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-color);
+    animation: slideUp 0.8s ease-out 0.3s both;
+}
+
+.demo-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.demo-accounts {
+    display: grid;
+    gap: 8px;
+}
+
+.demo-account {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--bg-light);
+    border-radius: var(--border-radius-small);
+    cursor: pointer;
+    transition: var(--transition);
+    border: 1px solid transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.demo-account::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.05), transparent);
+    transition: var(--transition);
+}
+
+.demo-account:hover {
+    background: #f0f0f0;
+    border-color: var(--border-color);
+    transform: translateX(4px);
+    box-shadow: var(--shadow-light);
+}
+
+.demo-account:hover::before {
+    left: 100%;
+}
+
+.demo-account:active {
+    transform: translateX(2px);
+}
+
+.demo-role {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.demo-role i {
+    margin-right: 8px;
+    width: 16px;
+    text-align: center;
+}
+
+.demo-credentials {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    background: var(--bg-primary);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    transition: var(--transition-fast);
+}
+
+.demo-account:hover .demo-credentials {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+
+/* === ФУТЕР === */
+.footer-text {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 12px;
+    color: var(--text-muted);
+    opacity: 0.8;
+}
+
+/* === УВЕДОМЛЕНИЯ DJANGO === */
+#django-messages {
+    margin-bottom: 20px;
+}
+
+#django-messages .alert {
+    animation: slideIn 0.5s ease-out;
+}
+
+/* === СТРАНИЦА ВЫБОРА КОМПАНИИ === */
+.company-select-container {
+    width: 100%;
+    max-width: 600px;
+}
+
+.company-card {
+    background: var(--bg-primary);
+    border-radius: var(--border-radius);
+    padding: 40px;
+    box-shadow: var(--shadow-heavy);
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.company-list {
+    display: grid;
+    gap: 12px;
+    margin: 24px 0;
+}
+
+.company-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: var(--bg-light);
+    border-radius: var(--border-radius-small);
+    cursor: pointer;
+    transition: var(--transition);
+    border: 2px solid transparent;
+}
+
+.company-item:hover {
+    background: #f0f0f0;
+    border-color: var(--border-color);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-light);
+}
+
+.company-item.selected {
+    border-color: var(--primary-color);
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.company-info h4 {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.company-info p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.company-role {
+    font-size: 12px;
+    padding: 4px 8px;
+    background: var(--primary-color);
+    color: var(--text-light);
+    border-radius: 4px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* === АДАПТИВНОСТЬ === */
+@media (max-width: 480px) {
+    body {
+        padding: 16px;
+    }
+
+    .login-card {
+        padding: 24px;
+    }
+
+    .login-title {
+        font-size: 24px;
+    }
+
+    .logo {
+        width: 56px;
+        height: 56px;
+        font-size: 20px;
+    }
+
+    .form-control {
+        font-size: 16px; /* Предотвращает зум на iOS */
+        padding: 14px;
+    }
+
+    .form-control.has-icon {
+        padding-left: 44px;
+    }
+
+    .input-icon {
+        left: 16px;
+    }
+
+    #loginBtn {
+        padding: 14px;
+        font-size: 15px;
+    }
+
+    .demo-account {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        text-align: center;
+    }
+
+    .demo-credentials {
+        align-self: center;
+    }
+}
+
+@media (max-width: 360px) {
+    .login-card {
+        padding: 20px;
+    }
+
+    .login-title {
+        font-size: 22px;
+    }
+
+    .demo-section {
+        margin-top: 24px;
+        padding-top: 20px;
+    }
+}
