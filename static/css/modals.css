@@ -1,0 +1,562 @@
+/* static/css/modals.css */
+@import url('common.css');
+
+/* === МОДАЛЬНЫЕ ОКНА === */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: var(--z-modal);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: var(--z-modal-backdrop);
+    opacity: 0;
+    transition: opacity 0.15s ease-out;
+}
+
+.modal-backdrop.show {
+    opacity: 1;
+}
+
+.modal-dialog {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    margin: auto;
+    transform: scale(0.9);
+    transition: transform 0.15s ease-out;
+}
+
+.modal.show .modal-dialog {
+    transform: scale(1);
+}
+
+.modal-dialog.modal-sm {
+    max-width: 300px;
+}
+
+.modal-dialog.modal-lg {
+    max-width: 800px;
+}
+
+.modal-dialog.modal-xl {
+    max-width: 1140px;
+}
+
+.modal-content {
+    background: var(--bg-primary);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-heavy);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* === ЗАГОЛОВОК МОДАЛЬНОГО ОКНА === */
+.modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-light);
+    flex-shrink: 0;
+}
+
+.modal-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.modal-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-fast);
+    font-size: 16px;
+}
+
+.modal-close:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* === ТЕЛО МОДАЛЬНОГО ОКНА === */
+.modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.modal-body:first-child {
+    border-top-left-radius: var(--border-radius);
+    border-top-right-radius: var(--border-radius);
+}
+
+.modal-body:last-child {
+    border-bottom-left-radius: var(--border-radius);
+    border-bottom-right-radius: var(--border-radius);
+}
+
+/* === ФУТЕР МОДАЛЬНОГО ОКНА === */
+.modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    background: var(--bg-light);
+    flex-shrink: 0;
+}
+
+.modal-footer .btn {
+    min-width: 100px;
+}
+
+/* === СПЕЦИАЛЬНЫЕ МОДАЛЬНЫЕ ОКНА === */
+
+/* Модальное окно загрузки */
+.loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 40px;
+}
+
+.loading-spinner i {
+    color: var(--text-muted);
+}
+
+/* Модальное окно подтверждения */
+.confirm-icon,
+.alert-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* === ФОРМЫ В МОДАЛЬНЫХ ОКНАХ === */
+.modal-body .form-group {
+    margin-bottom: 20px;
+}
+
+.modal-body .form-group:last-child {
+    margin-bottom: 0;
+}
+
+.modal-body .form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.modal-body .form-row:last-child {
+    margin-bottom: 0;
+}
+
+/* === ТАБЛИЦЫ В МОДАЛЬНЫХ ОКНАХ === */
+.modal-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+}
+
+.modal-table th,
+.modal-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-table th {
+    background: var(--bg-light);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.modal-table tr:hover {
+    background: var(--bg-light);
+}
+
+/* === ВКЛАДКИ В МОДАЛЬНЫХ ОКНАХ === */
+.modal-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    margin: -24px -24px 24px -24px;
+    padding: 0 24px;
+    background: var(--bg-light);
+}
+
+.modal-tab {
+    padding: 16px 20px;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: var(--transition-fast);
+}
+
+.modal-tab:hover,
+.modal-tab.active {
+    color: var(--text-primary);
+    border-bottom-color: var(--primary-color);
+}
+
+.modal-tab-content {
+    display: none;
+}
+
+.modal-tab-content.active {
+    display: block;
+}
+
+/* === СПИСКИ В МОДАЛЬНЫХ ОКНАХ === */
+.modal-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-small);
+}
+
+.modal-list-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: var(--transition-fast);
+}
+
+.modal-list-item:last-child {
+    border-bottom: none;
+}
+
+.modal-list-item:hover {
+    background: var(--bg-light);
+}
+
+.modal-list-item.selected {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: var(--primary-color);
+}
+
+/* === КАРТОЧКИ В МОДАЛЬНЫХ ОКНАХ === */
+.modal-card {
+    background: var(--bg-light);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-small);
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.modal-card:last-child {
+    margin-bottom: 0;
+}
+
+.modal-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-card-title {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.modal-card-body {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+/* === GRID В МОДАЛЬНЫХ ОКНАХ === */
+.modal-grid {
+    display: grid;
+    gap: 16px;
+    margin: 16px 0;
+}
+
+.modal-grid.cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.modal-grid.cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.modal-grid.cols-4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+/* === СТАТИСТИКА В МОДАЛЬНЫХ ОКНАХ === */
+.modal-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+}
+
+.modal-stat {
+    text-align: center;
+    padding: 16px;
+    background: var(--bg-light);
+    border-radius: var(--border-radius-small);
+    border: 1px solid var(--border-color);
+}
+
+.modal-stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.modal-stat-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* === ПРОГРЕСС БАРЫ В МОДАЛЬНЫХ ОКНАХ === */
+.modal-progress {
+    margin: 16px 0;
+}
+
+.modal-progress-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.modal-progress-bar {
+    height: 8px;
+    background: var(--bg-light);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.modal-progress-fill {
+    height: 100%;
+    background: var(--gradient-primary);
+    transition: width 0.6s ease;
+}
+
+/* === ПОИСК В МОДАЛЬНЫХ ОКНАХ === */
+.modal-search {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.modal-search-input {
+    width: 100%;
+    padding: 12px 16px 12px 40px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius-small);
+    font-size: 14px;
+    transition: var(--transition);
+}
+
+.modal-search-input:focus {
+    border-color: var(--border-color-focus);
+    outline: none;
+}
+
+.modal-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.modal-search-results {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-small);
+    margin-top: 8px;
+    background: var(--bg-primary);
+}
+
+.modal-search-result {
+    padding: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+    transition: var(--transition-fast);
+}
+
+.modal-search-result:last-child {
+    border-bottom: none;
+}
+
+.modal-search-result:hover {
+    background: var(--bg-light);
+}
+
+/* === АДАПТИВНОСТЬ === */
+@media (max-width: 768px) {
+    .modal {
+        padding: 10px;
+    }
+    
+    .modal-dialog {
+        max-width: 100%;
+        margin: 0;
+    }
+    
+    .modal-dialog.modal-sm,
+    .modal-dialog.modal-lg,
+    .modal-dialog.modal-xl {
+        max-width: 100%;
+    }
+    
+    .modal-content {
+        max-height: 95vh;
+    }
+    
+    .modal-header {
+        padding: 16px;
+    }
+    
+    .modal-body {
+        padding: 16px;
+    }
+    
+    .modal-footer {
+        padding: 12px 16px;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .modal-footer .btn {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    .modal-grid.cols-2,
+    .modal-grid.cols-3,
+    .modal-grid.cols-4 {
+        grid-template-columns: 1fr;
+    }
+    
+    .modal-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .modal-body .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal {
+        padding: 5px;
+    }
+    
+    .modal-header {
+        padding: 12px;
+    }
+    
+    .modal-body {
+        padding: 12px;
+    }
+    
+    .modal-footer {
+        padding: 8px 12px;
+    }
+    
+    .modal-title {
+        font-size: 16px;
+    }
+    
+    .modal-stats {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* === АНИМАЦИИ === */
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes modalSlideOut {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.9);
+    }
+}
+
+.modal.show .modal-dialog {
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+.modal.hide .modal-dialog {
+    animation: modalSlideOut 0.2s ease-in;
+}
+
+/* === ТЕМНАЯ ТЕМА === */
+@media (prefers-color-scheme: dark) {
+    .modal-backdrop {
+        background: rgba(0, 0, 0, 0.7);
+    }
+}
+
+/* === ПЕЧАТЬ === */
+@media print {
+    .modal {
+        display: none !important;
+    }
+}

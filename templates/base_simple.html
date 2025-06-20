@@ -1,0 +1,467 @@
+<!-- templates/base_simple.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Universal Service CRM{% endblock %}</title>
+    
+    <!-- Упрощенные стили -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Встроенные критичные стили */
+        :root {
+            --primary-color: #000000;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-light: #f5f5f5;
+            --text-primary: #000000;
+            --text-secondary: #666666;
+            --text-muted: #999999;
+            --border-color: #e0e0e0;
+            --border-radius: 8px;
+            --sidebar-width: 280px;
+            --header-height: 64px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: var(--bg-secondary);
+        }
+        
+        .app-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border-color);
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        
+        .main-area {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .main-header {
+            background: var(--bg-primary);
+            height: var(--header-height);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+        
+        .page-content {
+            flex: 1;
+            padding: 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        .page-header {
+            margin-bottom: 32px;
+        }
+        
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .page-subtitle {
+            color: var(--text-secondary);
+            margin: 0;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #000000 0%, #333333 100%);
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .company-logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #000000 0%, #333333 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+        
+        .company-info {
+            flex: 1;
+        }
+        
+        .company-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+        
+        .user-role-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            background: var(--bg-light);
+            color: var(--text-secondary);
+            border-radius: 12px;
+            text-transform: uppercase;
+        }
+        
+        .nav-list {
+            list-style: none;
+            margin: 0;
+            padding: 16px 0;
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            gap: 12px;
+        }
+        
+        .nav-link:hover {
+            background: var(--bg-light);
+            color: var(--text-primary);
+        }
+        
+        .nav-link.active {
+            background: var(--bg-light);
+            color: var(--primary-color);
+            border-right: 3px solid var(--primary-color);
+            font-weight: 500;
+        }
+        
+        .nav-icon {
+            width: 20px;
+            text-align: center;
+            font-size: 16px;
+        }
+        
+        .nav-text {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .alert {
+            padding: 16px;
+            margin-bottom: 16px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .alert-success {
+            background: #f0fdf4;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        
+        .alert-error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+        
+        .alert-info {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+        }
+        
+        .breadcrumbs {
+            padding: 16px 0;
+            margin-bottom: 16px;
+        }
+        
+        .breadcrumb-list {
+            display: flex;
+            align-items: center;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            gap: 8px;
+        }
+        
+        .breadcrumb-item {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        
+        .breadcrumb-item:not(:last-child)::after {
+            content: '/';
+            margin-left: 8px;
+            color: var(--text-muted);
+        }
+        
+        .breadcrumb-item.active {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        
+        .breadcrumb-item a {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+        
+        .breadcrumb-item a:hover {
+            color: var(--text-primary);
+        }
+        
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .main-area {
+                margin-left: 0;
+            }
+            
+            .page-content {
+                padding: 16px;
+            }
+            
+            .page-title {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% block content %}
+        <!-- Контент для страниц авторизации -->
+        {% block auth_content %}{% endblock %}
+        
+        <!-- Контент для основных страниц -->
+        {% block main_content %}
+            <div class="app-layout">
+                <!-- Простой сайдбар -->
+                <aside class="sidebar" id="sidebar">
+                    <div class="sidebar-header">
+                        <div class="company-logo">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div class="company-info">
+                            <div class="company-name">{{ current_company.name|default:"Компания"|truncatechars:20 }}</div>
+                            <div class="user-role-badge">{{ company_user.get_role_display|default:"Роль" }}</div>
+                        </div>
+                    </div>
+
+                    <nav class="sidebar-nav">
+                        <ul class="nav-list">
+                            <li>
+                                <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                                    <i class="nav-icon fas fa-chart-line"></i>
+                                    <span class="nav-text">Dashboard</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'orders_list' %}" class="nav-link {% if 'orders' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="nav-icon fas fa-clipboard-list"></i>
+                                    <span class="nav-text">Заказы</span>
+                                </a>
+                            </li>
+                            {% if company_user.role in 'owner,manager' %}
+                            <li>
+                                <a href="{% url 'clients_list' %}" class="nav-link {% if 'clients' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="nav-icon fas fa-users"></i>
+                                    <span class="nav-text">Клиенты</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'services_list' %}" class="nav-link {% if 'services' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="nav-icon fas fa-cogs"></i>
+                                    <span class="nav-text">Услуги</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'finances_overview' %}" class="nav-link {% if 'finances' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="nav-icon fas fa-chart-pie"></i>
+                                    <span class="nav-text">Финансы</span>
+                                </a>
+                            </li>
+                            {% if company_user.role == 'owner' %}
+                            <li>
+                                <a href="{% url 'employees_list' %}" class="nav-link {% if 'employees' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="nav-icon fas fa-user-tie"></i>
+                                    <span class="nav-text">Сотрудники</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'company_settings' %}" class="nav-link {% if 'settings' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="nav-icon fas fa-cog"></i>
+                                    <span class="nav-text">Настройки</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                            {% else %}
+                            <li>
+                                <a href="{% url 'my_salary' %}" class="nav-link {% if 'salary' in request.resolver_match.url_name %}active{% endif %}">
+                                    <i class="nav-icon fas fa-wallet"></i>
+                                    <span class="nav-text">Моя зарплата</span>
+                                </a>
+                            </li>
+                            {% endif %}
+                            <li style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                                <a href="{% url 'logout' %}" class="nav-link" style="color: #dc2626;">
+                                    <i class="nav-icon fas fa-sign-out-alt"></i>
+                                    <span class="nav-text">Выйти</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </aside>
+                
+                <!-- Основная область -->
+                <div class="main-area">
+                    <!-- Простой заголовок -->
+                    <header class="main-header">
+                        <div>
+                            <button onclick="toggleSidebar()" style="background: none; border: none; font-size: 18px; cursor: pointer; display: none;" id="menuToggle">
+                                <i class="fas fa-bars"></i>
+                            </button>
+                        </div>
+                        <div>
+                            <span style="font-weight: 500;">{{ user.get_full_name|default:user.username }}</span>
+                        </div>
+                    </header>
+                    
+                    <!-- Контент страницы -->
+                    <main class="page-content">
+                        <!-- Хлебные крошки -->
+                        {% block breadcrumbs %}{% endblock %}
+                        
+                        <!-- Заголовок страницы -->
+                        {% if page_title or block.super %}
+                        <div class="page-header">
+                            <h1 class="page-title">
+                                {% if page_icon %}<i class="fas fa-{{ page_icon }}"></i>{% endif %}
+                                {% block page_title %}{{ page_title }}{% endblock %}
+                            </h1>
+                            {% block page_subtitle %}
+                                {% if page_subtitle %}
+                                    <p class="page-subtitle">{{ page_subtitle }}</p>
+                                {% endif %}
+                            {% endblock %}
+                            {% block page_actions %}{% endblock %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Флеш-сообщения Django -->
+                        {% if messages %}
+                        <div>
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags|default:'info' }}">
+                                    <i class="fas fa-{% if message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'success' %}check-circle{% else %}info-circle{% endif %}"></i>
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Основной контент страницы -->
+                        {% block page_content %}{% endblock %}
+                    </main>
+                </div>
+            </div>
+        {% endblock %}
+    {% endblock %}
+    
+    <!-- Простой JavaScript -->
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+        
+        function showAlert(message, type = 'info') {
+            alert(message);
+        }
+        
+        // Показать кнопку меню на мобильных
+        if (window.innerWidth <= 768) {
+            document.getElementById('menuToggle').style.display = 'block';
+        }
+        
+        window.addEventListener('resize', function() {
+            const menuToggle = document.getElementById('menuToggle');
+            if (window.innerWidth <= 768) {
+                menuToggle.style.display = 'block';
+            } else {
+                menuToggle.style.display = 'none';
+                document.getElementById('sidebar').classList.remove('open');
+            }
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

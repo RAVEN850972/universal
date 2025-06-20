@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}Услуги - Universal CRM{% endblock %}
+
+{% block page_title %}Каталог услуг{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Список услуг</h5>
+        <div>
+            <button class="btn btn-primary"
+                    data-modal-url="{% url 'service_create_modal' %}"
+                    data-modal-title="Добавить услугу"
+                    data-modal-size="lg">
+                <i class="fas fa-plus me-1"></i>Новая услуга
+            </button>
+            <button class="btn btn-outline-secondary ms-2" onclick="toggleView()">
+                <i class="fas fa-th" id="viewIcon"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- List view -->
+    <div class="card-body p-0" id="listView">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">
+                            <input type="checkbox" class="form-check-input" id="selectAll">
+                        </th>
+                        <th>Название</th>
+                        <th>Описание</th>
+                        <th>Базовая цена</th>
+                        <th>Ед. измерения</th>
+                        <th>Использований</th>
+                        <th>Статус</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for service in services %}
+                    <tr data-service-id="{{ service.id }}">
+                        <td>
+                            <input type="checkbox" class="form-check-input service-checkbox" value="{{ service.id }}">
+                        </td>
+                        <td class="fw-semibold">{{ service.name }}</td>
+                        <td>{{ service.description|truncatechars:50 }}</td>
+                        <td class="fw-semibold">{{ service.base_price|floatformat:0 }} ₽</td>
+                        <td>{{ service.unit }}</td>
+                        <td>
+                            <span class="badge bg-info">{{ service.order_services.count }}</span>
+                        </td>
+                        <td>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" 
+                                       {% if service.is_active %}checked{% endif %}
+                                       onchange="toggleServiceStatus({{ service.id }}, this.checked)">
+                            </div>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary"
+                                        data-modal-url="{% url 'service_edit_modal' service.id %}"
+                                        data-modal-title="Редактировать услугу"
+                                        data-modal-size="lg">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-outline-danger" 
+                                        onclick="deleteService({{ service.id }})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="fas fa-concierge-bell fa-3x mb-3 d-block"></i>
+                                <h5>Услуг пока нет</h5>
+                                <p>Создайте первую услугу для вашей компании</p>
+                                <button class="btn btn-primary mt-3"
+                                        data-modal-url="{% url 'service_create_modal' %}"
+                                        data-modal-title="Добавить услугу"
+                                        data-modal-size="lg">
+                                    <i class="fas fa-plus me-1"></i>Создать первую услугу
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Grid view (hidden by default) -->
+    <div class="card-body d-none" id="gridView">
+        <div class="row g-4">
+            {% for service in services %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 {% if not service.is_active %}opacity-50{% endif %}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h5 class="card-title mb-0">{{ service.name }}</h5>
+                            <div class="dropdown">
+                                <button class="btn btn-link text-dark p-0" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <button class="dropdown-item"
+                                                data-modal-url="{% url 'service_edit_modal' service.id %}"
+                                                data-modal-title="Редактировать услугу"
+                                                data-modal-size="lg">
+                                            <i class="fas fa-edit me-2"></i>Редактировать
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button class="dropdown-item text-danger" onclick="deleteService({{ service.id }})">
+                                            <i class="fas fa-trash me-2"></i>Удалить
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <p class="card-text text-muted">{{ service.description|truncatechars:100 }}</p>
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <div>
+                                <h4 class="mb-0 text-primary">{{ service.base_price|floatformat:0 }} ₽</h4>
+                                <small class="text-muted">за {{ service.unit }}</small>
+                            </div>
+                            <div class="text-end">
+                                <small class="text-muted">Использований</small>
+                                <div class="badge bg-info">{{ service.order_services.count }}</div>
+                            </div>
+                        </div>
+                        
+                        {% if not service.is_active %}
+                        <div class="mt-3">
+                            <span class="badge bg-secondary">Неактивна</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Bulk actions (hidden by default) -->
+<div class="position-fixed bottom-0 start-50 translate-middle-x mb-3 d-none" id="bulkActions">
+    <div class="card shadow">
+        <div class="card-body py-2 px-3">
+            <span class="me-3">Выбрано: <strong id="selectedCount">0</strong></span>
+            <button class="btn btn-sm btn-outline-success" onclick="bulkActivate()">
+                <i class="fas fa-check"></i> Активировать
+            </button>
+            <button class="btn btn-sm btn-outline-warning" onclick="bulkDeactivate()">
+                <i class="fas fa-times"></i> Деактивировать
+            </button>
+            <button class="btn btn-sm btn-outline-danger" onclick="bulkDelete()">
+                <i class="fas fa-trash"></i> Удалить
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Toggle between list and grid view
+let currentView = 'list';
+
+function toggleView() {
+    const listView = document.getElementById('listView');
+    const gridView = document.getElementById('gridView');
+    const viewIcon = document.getElementById('viewIcon');
+    
+    if (currentView === 'list') {
+        listView.classList.add('d-none');
+        gridView.classList.remove('d-none');
+        viewIcon.className = 'fas fa-list';
+        currentView = 'grid';
+    } else {
+        gridView.classList.add('d-none');
+        listView.classList.remove('d-none');
+        viewIcon.className = 'fas fa-th';
+        currentView = 'list';
+    }
+}
+
+// Select all checkbox
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.service-checkbox');
+    checkboxes.forEach(cb => cb.checked = this.checked);
+    updateBulkActions();
+});
+
+// Individual checkboxes
+document.querySelectorAll('.service-checkbox').forEach(cb => {
+    cb.addEventListener('change', updateBulkActions);
+});
+
+function updateBulkActions() {
+    const checkedBoxes = document.querySelectorAll('.service-checkbox:checked');
+    const bulkActions = document.getElementById('bulkActions');
+    const selectedCount = document.getElementById('selectedCount');
+    
+    if (checkedBoxes.length > 0) {
+        bulkActions.classList.remove('d-none');
+        selectedCount.textContent = checkedBoxes.length;
+    } else {
+        bulkActions.classList.add('d-none');
+    }
+}
+
+// Toggle service status
+function toggleServiceStatus(serviceId, isActive) {
+    fetch(`/api/services/${serviceId}/toggle/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: `is_active=${isActive}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', 'Статус услуги обновлен');
+        } else {
+            showAlert('danger', 'Ошибка обновления статуса');
+        }
+    });
+}
+
+// Delete service
+function deleteService(serviceId) {
+    if (confirm('Вы уверены, что хотите удалить эту услугу?')) {
+        fetch(`/api/services/${serviceId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', 'Услуга удалена');
+                location.reload();
+            } else {
+                showAlert('danger', data.error || 'Ошибка удаления');
+            }
+        });
+    }
+}
+
+// Bulk operations
+function getSelectedIds() {
+    return Array.from(document.querySelectorAll('.service-checkbox:checked'))
+        .map(cb => cb.value);
+}
+
+function bulkActivate() {
+    const ids = getSelectedIds();
+    console.log('Activating services:', ids);
+    // Implement bulk activation
+}
+
+function bulkDeactivate() {
+    const ids = getSelectedIds();
+    console.log('Deactivating services:', ids);
+    // Implement bulk deactivation
+}
+
+function bulkDelete() {
+    const ids = getSelectedIds();
+    if (confirm(`Удалить ${ids.length} услуг?`)) {
+        console.log('Deleting services:', ids);
+        // Implement bulk deletion
+    }
+}
+</script>
+{% endblock %}

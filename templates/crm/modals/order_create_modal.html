@@ -1,0 +1,226 @@
+{% extends "crm/modals/base_modal.html" %}
+
+{% block modal_title %}Создать заказ{% endblock %}
+
+{% block modal_body %}
+<form id="createOrderForm" method="post">
+    {% csrf_token %}
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label">Клиент <span class="text-danger">*</span></label>
+                <select name="client" class="form-select" required>
+                    <option value="">Выберите клиента</option>
+                    {% for client in clients %}
+                    <option value="{{ client.id }}">{{ client.name }} - {{ client.phone }}</option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">
+                    Нет нужного клиента? 
+                    <a href="#" onclick="showNewClientForm()">Создать нового</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label">Дата заказа <span class="text-danger">*</span></label>
+                <input type="datetime-local" name="order_date" class="form-control" 
+                       value="{% now 'Y-m-d\TH:i' %}" required>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mb-3">
+        <label class="form-label">Описание заказа</label>
+        <textarea name="description" class="form-control" rows="3" 
+                  placeholder="Опишите детали заказа..."></textarea>
+    </div>
+    
+    <hr>
+    
+    <h6 class="mb-3">Услуги в заказе</h6>
+    
+    <div id="servicesContainer">
+        <!-- Services will be added here -->
+    </div>
+    
+    <button type="button" class="btn btn-outline-primary btn-sm" onclick="addServiceRow()">
+        <i class="fas fa-plus me-1"></i>Добавить услугу
+    </button>
+    
+    <hr>
+    
+    <div class="row">
+        <div class="col-md-6 offset-md-6">
+            <table class="table table-sm">
+                <tr>
+                    <td>Итого:</td>
+                    <td class="text-end fw-bold" id="orderTotal">0 ₽</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    
+    <input type="hidden" name="services_data" id="servicesData">
+</form>
+
+<!-- Hidden template for service row -->
+<template id="serviceRowTemplate">
+    <div class="service-row mb-3 p-3 border rounded">
+        <div class="row">
+            <div class="col-md-5">
+                <select class="form-select service-select" onchange="updateServicePrice(this)">
+                    <option value="">Выберите услугу</option>
+                    {% for service in services %}
+                    <option value="{{ service.id }}" 
+                            data-price="{{ service.base_price }}" 
+                            data-unit="{{ service.unit }}">
+                        {{ service.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control quantity-input" 
+                       placeholder="Кол-во" step="0.01" min="0.01" 
+                       onchange="calculateRowTotal(this)">
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control price-input" 
+                       placeholder="Цена" step="0.01" min="0" 
+                       onchange="calculateRowTotal(this)">
+            </div>
+            <div class="col-md-2">
+                <input type="text" class="form-control total-input" readonly>
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeServiceRow(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block modal_footer %}
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+    <button type="submit" form="createOrderForm" class="btn btn-primary">
+        <i class="fas fa-save me-1"></i>Создать заказ
+    </button>
+</div>
+
+<script>
+let serviceRowIndex = 0;
+
+// Add initial service row
+addServiceRow();
+
+function addServiceRow() {
+    const template = document.getElementById('serviceRowTemplate');
+    const clone = template.content.cloneNode(true);
+    document.getElementById('servicesContainer').appendChild(clone);
+    serviceRowIndex++;
+}
+
+function removeServiceRow(btn) {
+    btn.closest('.service-row').remove();
+    calculateOrderTotal();
+}
+
+function updateServicePrice(select) {
+    const row = select.closest('.service-row');
+    const selectedOption = select.options[select.selectedIndex];
+    const priceInput = row.querySelector('.price-input');
+    
+    if (selectedOption.value) {
+        priceInput.value = selectedOption.dataset.price;
+        calculateRowTotal(priceInput);
+    }
+}
+
+function calculateRowTotal(input) {
+    const row = input.closest('.service-row');
+    const quantity = parseFloat(row.querySelector('.quantity-input').value) || 0;
+    const price = parseFloat(row.querySelector('.price-input').value) || 0;
+    const total = quantity * price;
+    
+    row.querySelector('.total-input').value = total.toFixed(0) + ' ₽';
+    calculateOrderTotal();
+}
+
+function calculateOrderTotal() {
+    let total = 0;
+    document.querySelectorAll('.service-row').forEach(row => {
+        const quantity = parseFloat(row.querySelector('.quantity-input').value) || 0;
+        const price = parseFloat(row.querySelector('.price-input').value) || 0;
+        total += quantity * price;
+    });
+    
+    document.getElementById('orderTotal').textContent = total.toFixed(0) + ' ₽';
+}
+
+// Form submission
+document.getElementById('createOrderForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Collect services data
+    const servicesData = [];
+    document.querySelectorAll('.service-row').forEach(row => {
+        const serviceId = row.querySelector('.service-select').value;
+        const quantity = row.querySelector('.quantity-input').value;
+        const unitPrice = row.querySelector('.price-input').value;
+        
+        if (serviceId && quantity && unitPrice) {
+            servicesData.push({
+                service_id: parseInt(serviceId),
+                quantity: parseFloat(quantity),
+                unit_price: parseFloat(unitPrice)
+            });
+        }
+    });
+    
+    if (servicesData.length === 0) {
+        showAlert('danger', 'Добавьте хотя бы одну услугу');
+        return;
+    }
+    
+    // Set services data
+    document.getElementById('servicesData').value = JSON.stringify(servicesData);
+    
+    // Submit form
+    const formData = new FormData(this);
+    
+    fetch(window.location.href, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            closeModal();
+            if (data.redirect_url) {
+                window.location.href = data.redirect_url;
+            } else {
+                location.reload();
+            }
+        } else {
+            showAlert('danger', data.error || 'Произошла ошибка');
+        }
+    });
+});
+
+function showNewClientForm() {
+    // Close current modal and open client creation modal
+    closeModal();
+    loadModal('{% url "client_create_modal" %}', 'Создать клиента', 'lg');
+}
+</script>
+{% endblock %}

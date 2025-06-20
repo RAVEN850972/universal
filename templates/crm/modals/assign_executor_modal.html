@@ -1,0 +1,130 @@
+{% extends "crm/modals/base_modal.html" %}
+
+{% block modal_title %}Назначить исполнителя{% endblock %}
+
+{% block modal_body %}
+<div class="alert alert-info mb-4">
+    <i class="fas fa-info-circle me-2"></i>
+    Назначение исполнителя для заказа <strong>#{{ order.id }}</strong> на сумму <strong>{{ order.total_amount|floatformat:0 }} ₽</strong>
+</div>
+
+<form id="assignExecutorForm" method="post">
+    {% csrf_token %}
+    
+    <div class="mb-3">
+        <label class="form-label">Выберите исполнителя</label>
+        <select name="executor_id" class="form-select" required>
+            <option value="">-- Выберите исполнителя --</option>
+            {% for executor in executors %}
+            <option value="{{ executor.user.id }}" 
+                    data-commission="{{ executor.commission_rate }}">
+                {{ executor.user.get_full_name }} 
+                (комиссия {{ executor.commission_rate }}%)
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label">Планируемые часы работы</label>
+                <input type="number" name="work_hours" class="form-control" 
+                       step="0.5" min="0" value="8">
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="mb-3">
+                <label class="form-label">Процент комиссии</label>
+                <div class="input-group">
+                    <input type="number" name="commission_rate" class="form-control" 
+                           step="0.01" min="0" max="100" id="commissionRate">
+                    <span class="input-group-text">%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card bg-light">
+        <div class="card-body">
+            <h6 class="card-title">Расчет комиссии</h6>
+            <div class="d-flex justify-content-between mb-2">
+                <span>Сумма заказа:</span>
+                <strong>{{ order.total_amount|floatformat:0 }} ₽</strong>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span>Процент комиссии:</span>
+                <strong><span id="commissionPercent">0</span>%</strong>
+            </div>
+            <hr>
+            <div class="d-flex justify-content-between">
+                <span>Комиссия исполнителя:</span>
+                <strong class="text-primary"><span id="commissionAmount">0</span> ₽</strong>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if order.executors.exists %}
+<hr>
+<h6>Уже назначенные исполнители:</h6>
+<div class="list-group">
+    {% for executor in order.executors.all %}
+    <div class="list-group-item">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <strong>{{ executor.user.get_full_name }}</strong>
+                <div class="small text-muted">
+                    Часов: {{ executor.work_hours }} | Комиссия: {{ executor.commission_amount|floatformat:0 }} ₽
+                </div>
+            </div>
+            <span class="badge bg-{{ executor.status|default:'secondary' }}">
+                {{ executor.get_status_display }}
+            </span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block modal_footer %}
+<div class="modal-footer">
+    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+    <button type="submit" form="assignExecutorForm" class="btn btn-primary">
+        <i class="fas fa-user-check me-1"></i>Назначить
+    </button>
+</div>
+
+<script>
+const orderAmount = {{ order.total_amount }};
+const executorSelect = document.querySelector('select[name="executor_id"]');
+const commissionRateInput = document.getElementById('commissionRate');
+const commissionPercentSpan = document.getElementById('commissionPercent');
+const commissionAmountSpan = document.getElementById('commissionAmount');
+
+// Update commission rate when executor selected
+executorSelect.addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    if (selectedOption.value) {
+        const commission = selectedOption.dataset.commission;
+        commissionRateInput.value = commission;
+        updateCommissionCalculation();
+    }
+});
+
+// Update calculation when commission rate changes
+commissionRateInput.addEventListener('input', updateCommissionCalculation);
+
+function updateCommissionCalculation() {
+    const rate = parseFloat(commissionRateInput.value) || 0;
+    const amount = (orderAmount * rate) / 100;
+    
+    commissionPercentSpan.textContent = rate.toFixed(2);
+    commissionAmountSpan.textContent = Math.round(amount);
+}
+
+// Initial calculation
+updateCommissionCalculation();
+</script>
+{% endblock %}

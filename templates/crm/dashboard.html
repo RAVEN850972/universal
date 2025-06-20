@@ -1,0 +1,405 @@
+{% extends "base.html" %}
+
+{% block title %}Главная - Universal CRM{% endblock %}
+
+{% block page_title %}Добро пожаловать, {{ user.first_name }}!{% endblock %}
+
+{% block content %}
+<!-- Statistics Cards -->
+<div class="row g-4 mb-4">
+    {% if user_role == 'executor' %}
+    <!-- Executor Stats -->
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon primary">
+                <i class="fas fa-tasks"></i>
+            </div>
+            <h3 class="mb-1">{{ stats.my_active_orders }}</h3>
+            <p class="text-muted mb-0">Активных заказов</p>
+            <small class="text-success">
+                <i class="fas fa-arrow-up me-1"></i>В работе
+            </small>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon success">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h3 class="mb-1">{{ stats.my_completed_month }}</h3>
+            <p class="text-muted mb-0">Завершено в этом месяце</p>
+            <small class="text-muted">
+                <i class="fas fa-calendar me-1"></i>{{ now|date:"F" }}
+            </small>
+        </div>
+    </div>
+    
+    {% else %}
+    <!-- Manager/Owner Stats -->
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon primary">
+                <i class="fas fa-users"></i>
+            </div>
+            <h3 class="mb-1">{{ stats.total_clients }}</h3>
+            <p class="text-muted mb-0">Всего клиентов</p>
+            <small class="text-success">
+                <i class="fas fa-arrow-up me-1"></i>+12% за месяц
+            </small>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon warning">
+                <i class="fas fa-shopping-cart"></i>
+            </div>
+            <h3 class="mb-1">{{ stats.new_orders }}</h3>
+            <p class="text-muted mb-0">Новых заказов</p>
+            <small class="text-warning">
+                <i class="fas fa-clock me-1"></i>Ожидают обработки
+            </small>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon success">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h3 class="mb-1">{{ stats.active_orders }}</h3>
+            <p class="text-muted mb-0">В работе</p>
+            <small class="text-info">
+                <i class="fas fa-sync me-1"></i>Активные заказы
+            </small>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon danger">
+                <i class="fas fa-ruble-sign"></i>
+            </div>
+            <h3 class="mb-1">{{ stats.month_revenue|floatformat:0|default:0 }} ₽</h3>
+            <p class="text-muted mb-0">Доход за месяц</p>
+            <small class="text-success">
+                <i class="fas fa-arrow-up me-1"></i>+23% к прошлому
+            </small>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Charts Row -->
+{% if is_manager %}
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Динамика заказов</h5>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-secondary active" data-period="week">Неделя</button>
+                    <button type="button" class="btn btn-outline-secondary" data-period="month">Месяц</button>
+                    <button type="button" class="btn btn-outline-secondary" data-period="year">Год</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="ordersChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Статусы заказов</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="statusChart" height="200"></canvas>
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span><i class="fas fa-circle text-primary me-2"></i>Новые</span>
+                        <strong>{{ stats.new_orders }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span><i class="fas fa-circle text-warning me-2"></i>В работе</span>
+                        <strong>{{ stats.active_orders }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span><i class="fas fa-circle text-success me-2"></i>Завершены</span>
+                        <strong>{{ stats.completed_orders_month }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recent Orders -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Последние заказы</h5>
+        {% if is_manager %}
+        <button class="btn btn-primary btn-sm" data-modal-url="{% url 'order_create_modal' %}" data-modal-title="Создать заказ" data-modal-size="xl">
+            <i class="fas fa-plus me-1"></i>Новый заказ
+        </button>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Клиент</th>
+                        <th>Статус</th>
+                        <th>Сумма</th>
+                        <th>Дата</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in recent_orders %}
+                    <tr>
+                        <td>
+                            <a href="#" data-modal-url="{% url 'order_detail_modal' order.id %}" 
+                               data-modal-title="Заказ #{{ order.id }}" 
+                               data-modal-size="xl"
+                               class="text-decoration-none">
+                                #{{ order.id }}
+                            </a>
+                        </td>
+                        <td>{{ order.client.name }}</td>
+                        <td>
+                            {% if order.status == 'new' %}
+                                <span class="badge badge-new">Новый</span>
+                            {% elif order.status == 'in_progress' %}
+                                <span class="badge badge-in-progress">В работе</span>
+                            {% elif order.status == 'completed' %}
+                                <span class="badge badge-completed">Завершён</span>
+                            {% else %}
+                                <span class="badge badge-cancelled">Отменён</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ order.total_amount|floatformat:0 }} ₽</td>
+                        <td>{{ order.created_at|date:"d.m.Y" }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary" 
+                                        data-modal-url="{% url 'order_detail_modal' order.id %}"
+                                        data-modal-title="Заказ #{{ order.id }}"
+                                        data-modal-size="xl">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                {% if is_manager %}
+                                <button type="button" class="btn btn-outline-secondary" 
+                                        onclick="quickStatusUpdate({{ order.id }})">
+                                    <i class="fas fa-sync"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                            Заказов пока нет
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if recent_orders %}
+        <div class="card-footer text-center">
+            <a href="{% url 'orders_list' %}" class="btn btn-link">
+                Все заказы <i class="fas fa-arrow-right ms-1"></i>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Quick Actions for Mobile -->
+<div class="position-fixed bottom-0 end-0 p-3 d-lg-none">
+    <button class="btn btn-primary rounded-circle shadow-lg" style="width: 60px; height: 60px;" 
+            data-bs-toggle="dropdown">
+        <i class="fas fa-plus fa-lg"></i>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+        {% if is_manager %}
+        <li>
+            <a class="dropdown-item" href="#" 
+               data-modal-url="{% url 'order_create_modal' %}" 
+               data-modal-title="Создать заказ" 
+               data-modal-size="xl">
+                <i class="fas fa-shopping-cart me-2"></i>Новый заказ
+            </a>
+        </li>
+        <li>
+            <a class="dropdown-item" href="#" 
+               data-modal-url="{% url 'client_create_modal' %}" 
+               data-modal-title="Добавить клиента" 
+               data-modal-size="lg">
+                <i class="fas fa-user-plus me-2"></i>Новый клиент
+            </a>
+        </li>
+        {% endif %}
+        <li>
+            <a class="dropdown-item" href="#" 
+               data-modal-url="{% url 'my_performance_modal' %}" 
+               data-modal-title="Моя производительность" 
+               data-modal-size="lg">
+                <i class="fas fa-chart-bar me-2"></i>Моя статистика
+            </a>
+        </li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Initialize charts
+{% if is_manager %}
+// Orders dynamics chart
+const ordersCtx = document.getElementById('ordersChart').getContext('2d');
+const ordersChart = new Chart(ordersCtx, {
+    type: 'line',
+    data: {
+        labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+        datasets: [{
+            label: 'Новые заказы',
+            data: [12, 19, 3, 5, 2, 3, 7],
+            borderColor: '#4361ee',
+            backgroundColor: 'rgba(67, 97, 238, 0.1)',
+            tension: 0.4
+        }, {
+            label: 'Завершенные',
+            data: [8, 12, 5, 8, 4, 2, 5],
+            borderColor: '#4cc9f0',
+            backgroundColor: 'rgba(76, 201, 240, 0.1)',
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'bottom'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Status chart
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+const statusChart = new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Новые', 'В работе', 'Завершены'],
+        datasets: [{
+            data: [
+                {{ stats.new_orders|default:0 }}, 
+                {{ stats.active_orders|default:0 }}, 
+                {{ stats.completed_orders_month|default:0 }}
+            ],
+            backgroundColor: ['#4361ee', '#f77f00', '#4cc9f0']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+
+// Period switcher for chart
+document.querySelectorAll('[data-period]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('[data-period]').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Here you would load new data based on period
+        const period = this.dataset.period;
+        console.log('Loading data for period:', period);
+        // loadChartData(period);
+    });
+});
+{% endif %}
+
+// Quick status update
+function quickStatusUpdate(orderId) {
+    const statuses = [
+        {value: 'new', text: 'Новый'},
+        {value: 'in_progress', text: 'В работе'},
+        {value: 'completed', text: 'Завершён'},
+        {value: 'cancelled', text: 'Отменён'}
+    ];
+    
+    // Create select dropdown
+    const select = document.createElement('select');
+    select.className = 'form-select form-select-sm';
+    statuses.forEach(status => {
+        const option = document.createElement('option');
+        option.value = status.value;
+        option.textContent = status.text;
+        select.appendChild(option);
+    });
+    
+    // Show modal with select
+    if (confirm('Изменить статус заказа?')) {
+        // Here you would show a proper modal
+        // For now, using prompt
+        const newStatus = prompt('Введите новый статус (new, in_progress, completed, cancelled):');
+        if (newStatus) {
+            fetch(`/quick/orders/${orderId}/status/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: `status=${newStatus}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', data.message);
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert('danger', data.error);
+                }
+            });
+        }
+    }
+}
+
+// Auto-refresh stats every 30 seconds
+setInterval(() => {
+    fetch('/api/dashboard/stats/')
+        .then(response => response.json())
+        .then(stats => {
+            // Update stats cards
+            document.querySelectorAll('[data-stat]').forEach(el => {
+                const statName = el.dataset.stat;
+                if (stats[statName] !== undefined) {
+                    el.textContent = stats[statName];
+                }
+            });
+        });
+}, 30000);
+</script>
+{% endblock %}
