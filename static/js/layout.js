@@ -15,19 +15,27 @@ let darkMode = localStorage.getItem('darkMode') === 'true';
  */
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
-    const overlay = document.querySelector('.sidebar-overlay');
+    let overlay = document.querySelector('.sidebar-overlay');
     
     if (!sidebar) return;
+    
+    // Создаем оверлей если его нет
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.className = 'sidebar-overlay';
+        overlay.onclick = closeSidebar;
+        document.body.appendChild(overlay);
+    }
     
     sidebarOpen = !sidebarOpen;
     
     if (sidebarOpen) {
         sidebar.classList.add('open');
-        overlay?.classList.add('show');
+        overlay.classList.add('show');
         document.body.style.overflow = 'hidden';
     } else {
         sidebar.classList.remove('open');
-        overlay?.classList.remove('show');
+        overlay.classList.remove('show');
         document.body.style.overflow = '';
     }
 }
@@ -72,16 +80,41 @@ function collapseSidebar() {
 }
 
 /**
+ * Создание кнопки мобильного меню
+ */
+function createMobileMenuButton() {
+    // Проверяем есть ли уже кнопка
+    if (document.querySelector('.mobile-menu-btn')) return;
+    
+    const button = document.createElement('button');
+    button.className = 'mobile-menu-btn';
+    button.innerHTML = '<i class="fas fa-bars"></i>';
+    button.onclick = toggleSidebar;
+    
+    // Ищем куда вставить кнопку (в заголовок страницы)
+    const pageHeader = document.querySelector('.page-header');
+    if (pageHeader) {
+        const headerContent = pageHeader.querySelector('.page-header-content');
+        if (headerContent) {
+            headerContent.insertBefore(button, headerContent.firstChild);
+        }
+    }
+}
+
+/**
  * Инициализация состояния сайдбара
  */
 function initSidebar() {
     const sidebar = document.getElementById('sidebar');
     if (!sidebar) return;
     
-    // Восстанавливаем состояние сворачивания
-    if (sidebarCollapsed) {
+    // Восстанавливаем состояние сворачивания только на десктопе
+    if (window.innerWidth >= 1024 && sidebarCollapsed) {
         sidebar.classList.add('collapsed');
     }
+    
+    // Создаем кнопку мобильного меню если её нет
+    createMobileMenuButton();
     
     // Обработчики для подменю
     const navItems = document.querySelectorAll('.nav-item');
@@ -92,21 +125,9 @@ function initSidebar() {
         
         if (submenu && arrow) {
             link.addEventListener('click', function(e) {
-                // Только для ссылок с подменю без href
-                if (this.getAttribute('href') === '#') {
+                if (window.innerWidth < 1024) {
                     e.preventDefault();
-                    
-                    const isOpen = item.classList.contains('open');
-                    
-                    // Закрываем все другие подменю
-                    navItems.forEach(otherItem => {
-                        if (otherItem !== item) {
-                            otherItem.classList.remove('open');
-                        }
-                    });
-                    
-                    // Переключаем текущее
-                    item.classList.toggle('open', !isOpen);
+                    item.classList.toggle('open');
                 }
             });
         }
@@ -163,41 +184,6 @@ function initTheme() {
     }
 }
 
-// === УВЕДОМЛЕНИЯ ===
-
-/**
- * Показать панель уведомлений
- */
-function showNotifications() {
-    // Будет реализовано позже с модальными окнами
-    console.log('Показать уведомления');
-}
-
-/**
- * Обновление счетчика уведомлений
- */
-function updateNotificationCount(count) {
-    const badges = document.querySelectorAll('.action-badge, .nav-badge');
-    badges.forEach(badge => {
-        if (count > 0) {
-            badge.textContent = count;
-            badge.style.display = 'block';
-        } else {
-            badge.style.display = 'none';
-        }
-    });
-}
-
-// === БЫСТРЫЕ ДЕЙСТВИЯ ===
-
-/**
- * Показать модальное окно быстрого создания заказа
- */
-function showQuickOrderModal() {
-    // Будет реализовано позже с модальными окнами
-    console.log('Быстрое создание заказа');
-}
-
 // === АДАПТИВНОСТЬ ===
 
 /**
@@ -208,10 +194,12 @@ function handleResize() {
     const sidebar = document.getElementById('sidebar');
     
     if (width >= 1024) {
-        // Десктоп - восстанавливаем состояние сворачивания
-        closeSidebar(); // Закрываем мобильное меню
+        // Десктоп - закрываем мобильное меню и восстанавливаем состояние
+        closeSidebar();
         if (sidebarCollapsed) {
             sidebar?.classList.add('collapsed');
+        } else {
+            sidebar?.classList.remove('collapsed');
         }
     } else {
         // Мобильный - убираем сворачивание
@@ -233,14 +221,6 @@ function updateActiveNavigation() {
         if (href && href !== '#') {
             if (currentPath === href || (href !== '/' && currentPath.startsWith(href))) {
                 link.classList.add('active');
-                
-                // Открываем родительское подменю если есть
-                const parentItem = link.closest('.nav-item');
-                const parentSubmenu = parentItem.closest('.nav-submenu');
-                if (parentSubmenu) {
-                    const grandParentItem = parentSubmenu.closest('.nav-item');
-                    grandParentItem?.classList.add('open');
-                }
             } else {
                 link.classList.remove('active');
             }
@@ -248,55 +228,29 @@ function updateActiveNavigation() {
     });
 }
 
-// === СОСТОЯНИЕ ПОДКЛЮЧЕНИЯ ===
+// === АНИМАЦИИ ===
 
 /**
- * Обновление статуса подключения
+ * Анимация элементов при загрузке
  */
-function updateConnectionStatus(online = true) {
-    const statusElement = document.querySelector('.connection-status');
-    if (!statusElement) return;
-    
-    if (online) {
-        statusElement.classList.add('online');
-        statusElement.classList.remove('offline');
-        statusElement.innerHTML = '<i class="fas fa-circle"></i><span>Онлайн</span>';
-    } else {
-        statusElement.classList.remove('online');
-        statusElement.classList.add('offline');
-        statusElement.innerHTML = '<i class="fas fa-circle"></i><span>Офлайн</span>';
-    }
+function animateElements() {
+    const elements = document.querySelectorAll('.stat-card, .dashboard-card, .card');
+    elements.forEach((element, index) => {
+        element.style.opacity = '0';
+        element.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            element.style.transition = 'all 0.6s ease-out';
+            element.style.opacity = '1';
+            element.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
 }
 
-/**
- * Мониторинг подключения
- */
-function initConnectionMonitoring() {
-    // Проверяем статус подключения
-    updateConnectionStatus(navigator.onLine);
-    
-    // Слушаем изменения статуса
-    window.addEventListener('online', () => updateConnectionStatus(true));
-    window.addEventListener('offline', () => updateConnectionStatus(false));
-    
-    // Периодическая проверка (опционально)
-    setInterval(async () => {
-        try {
-            const response = await fetch('/api/ping/', { 
-                method: 'HEAD',
-                cache: 'no-cache'
-            });
-            updateConnectionStatus(response.ok);
-        } catch {
-            updateConnectionStatus(false);
-        }
-    }, 30000); // Каждые 30 секунд
-}
-
-// === КЛАВИАТУРНЫЕ СОКРАЩЕНИЯ ===
+// === ОБРАБОТЧИКИ КЛАВИАТУРЫ ===
 
 /**
- * Обработка клавиатурных сокращений
+ * Обработка горячих клавиш
  */
 function handleKeyboardShortcuts(e) {
     // Ctrl/Cmd + B - переключение сайдбара
@@ -309,106 +263,61 @@ function handleKeyboardShortcuts(e) {
         }
     }
     
-    // Ctrl/Cmd + K - поиск (если есть)
-    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        const searchInput = document.querySelector('#globalSearch');
-        if (searchInput) {
-            searchInput.focus();
+    // Escape - закрытие мобильного сайдбара
+    if (e.key === 'Escape' && sidebarOpen) {
+        closeSidebar();
+    }
+}
+
+// === УВЕДОМЛЕНИЯ ===
+
+/**
+ * Показать уведомление
+ */
+function showAlert(type, message, duration = 5000) {
+    const alertHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+        </div>
+    `;
+    
+    let container = document.querySelector('.messages-container');
+    if (!container) {
+        container = document.querySelector('.page-content-body');
+    }
+    
+    if (container) {
+        container.insertAdjacentHTML('afterbegin', alertHTML);
+        
+        // Автоматическое скрытие
+        if (duration > 0) {
+            setTimeout(() => {
+                const alert = container.querySelector('.alert');
+                if (alert) {
+                    alert.remove();
+                }
+            }, duration);
         }
     }
-    
-    // Ctrl/Cmd + Shift + N - быстрое создание заказа
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'N') {
-        e.preventDefault();
-        showQuickOrderModal();
-    }
-    
-    // Ctrl/Cmd + Shift + D - переключение темы
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
-        e.preventDefault();
-        toggleDarkMode();
-    }
 }
 
-// === АНИМАЦИИ ===
+// === УТИЛИТЫ ===
 
 /**
- * Анимация появления элементов
+ * Throttle функция для оптимизации производительности
  */
-function animateElements() {
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('fade-in');
-                observer.unobserve(entry.target);
-            }
-        });
-    }, {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    });
-    
-    // Наблюдаем за элементами с классом animate-on-scroll
-    document.querySelectorAll('.animate-on-scroll').forEach(el => {
-        observer.observe(el);
-    });
-}
-
-// === ИНИЦИАЛИЗАЦИЯ ===
-
-/**
- * Инициализация всех компонентов каркаса
- */
-function initLayout() {
-    initSidebar();
-    initTheme();
-    updateActiveNavigation();
-    initConnectionMonitoring();
-    animateElements();
-    
-    // Обработчики событий
-    window.addEventListener('resize', throttle(handleResize, 250));
-    document.addEventListener('keydown', handleKeyboardShortcuts);
-    
-    // Обработка кликов вне сайдбара на мобильных
-    document.addEventListener('click', function(e) {
-        if (window.innerWidth < 1024 && sidebarOpen) {
-            const sidebar = document.getElementById('sidebar');
-            const sidebarToggle = document.querySelector('.sidebar-toggle');
-            
-            if (sidebar && !sidebar.contains(e.target) && 
-                sidebarToggle && !sidebarToggle.contains(e.target)) {
-                closeSidebar();
-            }
+function throttle(func, limit) {
+    let inThrottle;
+    return function() {
+        const args = arguments;
+        const context = this;
+        if (!inThrottle) {
+            func.apply(context, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
         }
-    });
-    
-    // Первоначальная настройка адаптивности
-    handleResize();
-    
-    console.log('Layout initialized');
-}
-
-// === УТИЛИТЫ ДЛЯ ДРУГИХ КОМПОНЕНТОВ ===
-
-/**
- * Показать loading на странице
- */
-function showPageLoading() {
-    const main = document.querySelector('.page-content-body');
-    if (main) {
-        main.classList.add('loading');
-    }
-}
-
-/**
- * Скрыть loading на странице
- */
-function hidePageLoading() {
-    const main = document.querySelector('.page-content-body');
-    if (main) {
-        main.classList.remove('loading');
     }
 }
 
@@ -438,44 +347,44 @@ function updatePageTitle(title, subtitle = '') {
 }
 
 /**
- * Обновить хлебные крошки
+ * Инициализация каркаса
  */
-function updateBreadcrumbs(breadcrumbs) {
-    const container = document.querySelector('.breadcrumb-list');
-    if (!container) return;
+function initLayout() {
+    initSidebar();
+    initTheme();
+    updateActiveNavigation();
+    animateElements();
     
-    container.innerHTML = breadcrumbs.map((crumb, index) => {
-        const isLast = index === breadcrumbs.length - 1;
-        return `
-            <li class="breadcrumb-item${isLast ? ' active' : ''}">
-                ${isLast || !crumb.url ? 
-                    `<span>${crumb.title}</span>` : 
-                    `<a href="${crumb.url}">${crumb.title}</a>`
-                }
-            </li>
-        `;
-    }).join('');
+    // Обработчики событий
+    window.addEventListener('resize', throttle(handleResize, 250));
+    document.addEventListener('keydown', handleKeyboardShortcuts);
+    
+    // Обработка кликов вне сайдбара на мобильных
+    document.addEventListener('click', function(e) {
+        if (window.innerWidth < 1024 && sidebarOpen) {
+            const sidebar = document.getElementById('sidebar');
+            const mobileBtn = document.querySelector('.mobile-menu-btn');
+            
+            if (sidebar && !sidebar.contains(e.target) && 
+                mobileBtn && !mobileBtn.contains(e.target)) {
+                closeSidebar();
+            }
+        }
+    });
+    
+    // Первоначальная настройка адаптивности
+    handleResize();
+    
+    console.log('Layout initialized');
 }
 
-// === ЭКСПОРТ ДЛЯ МОДУЛЬНЫХ СИСТЕМ ===
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        toggleSidebar,
-        closeSidebar,
-        collapseSidebar,
-        toggleDarkMode,
-        showNotifications,
-        updateNotificationCount,
-        showQuickOrderModal,
-        updateActiveNavigation,
-        updateConnectionStatus,
-        showPageLoading,
-        hidePageLoading,
-        updatePageTitle,
-        updateBreadcrumbs,
-        initLayout
-    };
-}
-
-// === АВТОИНИЦИАЛИЗАЦИЯ ===
+// Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', initLayout);
+
+// Экспорт функций для глобального использования
+window.toggleSidebar = toggleSidebar;
+window.closeSidebar = closeSidebar;
+window.collapseSidebar = collapseSidebar;
+window.toggleDarkMode = toggleDarkMode;
+window.showAlert = showAlert;
+window.updatePageTitle = updatePageTitle;
