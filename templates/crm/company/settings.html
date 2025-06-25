@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}Настройки компании - Universal CRM{% endblock %}
+
+{% block page_title %}Настройки компании{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Основная информация</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.name.label_tag }}
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                <div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                {{ form.email.label_tag }}
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                <div class="invalid-feedback d-block">{{ form.email.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.description.label_tag }}
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                        <div class="invalid-feedback d-block">{{ form.description.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.address.label_tag }}
+                        {{ form.address }}
+                        {% if form.address.errors %}
+                        <div class="invalid-feedback d-block">{{ form.address.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.phone.label_tag }}
+                        {{ form.phone }}
+                        {% if form.phone.errors %}
+                        <div class="invalid-feedback d-block">{{ form.phone.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Сохранить изменения
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Company info -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h6 class="mb-3">Информация о компании</h6>
+                <dl>
+                    <dt class="text-muted">Создана</dt>
+                    <dd>{{ current_company.created_at|date:"d.m.Y" }}</dd>
+                    
+                    <dt class="text-muted">Сотрудников</dt>
+                    <dd>{{ current_company.company_users.filter:is_active=True|length }}</dd>
+                    
+                    <dt class="text-muted">Клиентов</dt>
+                    <dd>{{ current_company.clients.count }}</dd>
+                    
+                    <dt class="text-muted">Заказов</dt>
+                    <dd>{{ current_company.orders.count }}</dd>
+                </dl>
+            </div>
+        </div>
+        
+        <!-- Danger zone -->
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h6 class="mb-0">Опасная зона</h6>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">
+                    Эти действия нельзя отменить. Пожалуйста, будьте осторожны.
+                </p>
+                
+                <button class="btn btn-outline-danger btn-sm mb-2 w-100" onclick="archiveCompany()">
+                    <i class="fas fa-archive me-2"></i>Архивировать компанию
+                </button>
+                
+                <button class="btn btn-danger btn-sm w-100" onclick="deleteCompany()">
+                    <i class="fas fa-trash me-2"></i>Удалить компанию
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Additional settings tabs -->
+<div class="card mt-4">
+    <div class="card-header">
+        <ul class="nav nav-tabs card-header-tabs">
+            <li class="nav-item">
+                <a class="nav-link active" data-bs-toggle="tab" href="#notifications">
+                    <i class="fas fa-bell me-2"></i>Уведомления
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#integrations">
+                    <i class="fas fa-plug me-2"></i>Интеграции
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#billing">
+                    <i class="fas fa-credit-card me-2"></i>Биллинг
+                </a>
+            </li>
+        </ul>
+    </div>
+    <div class="card-body">
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="notifications">
+                <h5 class="mb-3">Настройки уведомлений</h5>
+                
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="emailNotifications" checked>
+                    <label class="form-check-label" for="emailNotifications">
+                        Email уведомления о новых заказах
+                    </label>
+                </div>
+                
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="smsNotifications">
+                    <label class="form-check-label" for="smsNotifications">
+                        SMS уведомления о важных событиях
+                    </label>
+                </div>
+                
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="telegramNotifications">
+                    <label class="form-check-label" for="telegramNotifications">
+                        Telegram уведомления
+                    </label>
+                </div>
+                
+                <button class="btn btn-primary" onclick="saveNotificationSettings()">
+                    <i class="fas fa-save me-2"></i>Сохранить настройки
+                </button>
+            </div>
+            
+            <div class="tab-pane fade" id="integrations">
+                <h5 class="mb-3">Доступные интеграции</h5>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="fas fa-file-invoice fa-2x text-primary me-3"></i>
+                                    <div>
+                                        <h6 class="mb-0">1C Бухгалтерия</h6>
+                                        <small class="text-muted">Синхронизация данных</small>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-primary">Настроить</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="fab fa-telegram fa-2x text-info me-3"></i>
+                                    <div>
+                                        <h6 class="mb-0">Telegram Bot</h6>
+                                        <small class="text-muted">Уведомления и управление</small>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-info">Подключить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-pane fade" id="billing">
+                <h5 class="mb-3">Информация о тарифе</h5>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Вы используете тариф <strong>Профессиональный</strong>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h4 class="text-primary">5</h4>
+                            <small class="text-muted">из 10 пользователей</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h4 class="text-success">45</h4>
+                            <small class="text-muted">из 100 клиентов</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h4 class="text-info">∞</h4>
+                            <small class="text-muted">заказов</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="btn btn-primary">
+                    <i class="fas fa-rocket me-2"></i>Обновить тариф
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function archiveCompany() {
+    if (confirm('Вы уверены, что хотите архивировать компанию? Все данные будут сохранены, но компания станет неактивной.')) {
+        // Archive company logic
+        console.log('Archiving company...');
+    }
+}
+
+function deleteCompany() {
+    const confirmText = prompt('Для удаления компании введите её название: {{ current_company.name }}');
+    if (confirmText === '{{ current_company.name }}') {
+        if (confirm('Это действие нельзя отменить! Все данные будут удалены навсегда. Продолжить?')) {
+            // Delete company logic
+            console.log('Deleting company...');
+        }
+    } else if (confirmText) {
+        showAlert('danger', 'Название компании введено неверно');
+    }
+}
+
+function saveNotificationSettings() {
+    const settings = {
+        email: document.getElementById('emailNotifications').checked,
+        sms: document.getElementById('smsNotifications').checked,
+        telegram: document.getElementById('telegramNotifications').checked
+    };
+    
+    console.log('Saving notification settings:', settings);
+    showAlert('success', 'Настройки уведомлений сохранены');
+}
+</script>
+{% endblock %}

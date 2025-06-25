@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.name }} - Universal CRM{% endblock %}
+
+{% block page_title %}{{ client.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Client info -->
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Информация о клиенте</h5>
+                {% if can_edit %}
+                <button class="btn btn-sm btn-outline-primary"
+                        data-modal-url="{% url 'client_edit_modal' client.id %}"
+                        data-modal-title="Редактировать клиента"
+                        data-modal-size="lg">
+                    <i class="fas fa-edit"></i>
+                </button>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Телефон</label>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-phone me-2 text-primary"></i>
+                        <span>{{ client.phone|default:"—" }}</span>
+                        {% if client.phone %}
+                        <a href="tel:{{ client.phone }}" class="btn btn-sm btn-link ms-auto">
+                            <i class="fas fa-phone-square"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Email</label>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-envelope me-2 text-primary"></i>
+                        <span>{{ client.email|default:"—" }}</span>
+                        {% if client.email %}
+                        <a href="mailto:{{ client.email }}" class="btn btn-sm btn-link ms-auto">
+                            <i class="fas fa-envelope-square"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Адрес</label>
+                    <div class="d-flex align-items-start">
+                        <i class="fas fa-map-marker-alt me-2 text-primary mt-1"></i>
+                        <span>{{ client.address|default:"—"|linebreaks }}</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Источник</label>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-user-plus me-2 text-primary"></i>
+                        <span class="badge bg-secondary">{{ client.get_source_display }}</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="text-muted small d-block">Дата регистрации</label>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-calendar me-2 text-primary"></i>
+                        <span>{{ client.created_at|date:"d.m.Y H:i" }}</span>
+                    </div>
+                </div>
+                
+                {% if client.notes %}
+                <div>
+                    <label class="text-muted small d-block">Заметки</label>
+                    <div class="border rounded p-2 bg-light">
+                        {{ client.notes|linebreaks }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Client stats -->
+        <div class="card">
+            <div class="card-body">
+                <h6 class="mb-3">Статистика</h6>
+                <div class="row g-3 text-center">
+                    <div class="col-6">
+                        <div class="border rounded p-3">
+                            <h3 class="mb-1 text-primary">{{ orders.count }}</h3>
+                            <small class="text-muted">Всего заказов</small>
+                        </div>
+                    </div>
+                    
+                    <div class="col-6">
+                        <div class="border rounded p-3">
+                            <h3 class="mb-1 text-success">{{ completed_orders_count }}</h3>
+                            <small class="text-muted">Завершено</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-3">
+                            <h5 class="mb-1 text-info">{{ total_amount_sum|floatformat:0 }} ₽</h5>
+                            <small class="text-muted">Общая сумма</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-3">
+                            <h5 class="mb-1 text-warning">{{ avg_amount|floatformat:0 }} ₽</h5>
+                            <small class="text-muted">Средний чек</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Orders -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">История заказов</h5>
+                {% if can_edit %}
+                <button class="btn btn-primary btn-sm"
+                        data-modal-url="{% url 'order_create_modal' %}?client={{ client.id }}"
+                        data-modal-title="Создать заказ"
+                        data-modal-size="xl">
+                    <i class="fas fa-plus me-1"></i>Новый заказ
+                </button>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th>Дата</th>
+                                <th>Статус</th>
+                                <th>Услуги</th>
+                                <th>Сумма</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                            <tr>
+                                <td>
+                                    <a href="#" 
+                                       data-modal-url="{% url 'order_detail_modal' order.id %}"
+                                       data-modal-title="Заказ #{{ order.id }}"
+                                       data-modal-size="xl"
+                                       class="text-decoration-none">
+                                        #{{ order.id }}
+                                    </a>
+                                </td>
+                                <td>{{ order.order_date|date:"d.m.Y" }}</td>
+                                <td>
+                                    {% if order.status == 'new' %}
+                                        <span class="badge badge-new">Новый</span>
+                                    {% elif order.status == 'in_progress' %}
+                                        <span class="badge badge-in-progress">В работе</span>
+                                    {% elif order.status == 'completed' %}
+                                        <span class="badge badge-completed">Завершён</span>
+                                    {% else %}
+                                        <span class="badge badge-cancelled">Отменён</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% for service in order.order_services.all|slice:":2" %}
+                                    <small class="d-block">{{ service.service.name }}</small>
+                                    {% endfor %}
+                                    {% if order.order_services.count > 2 %}
+                                    <small class="text-muted">и еще {{ order.order_services.count|add:"-2" }}</small>
+                                    {% endif %}
+                                </td>
+                                <td class="fw-semibold">{{ order.total_amount|floatformat:0 }} ₽</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary"
+                                                data-modal-url="{% url 'order_detail_modal' order.id %}"
+                                                data-modal-title="Заказ #{{ order.id }}"
+                                                data-modal-size="xl">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <a href="{% url 'order_detail' order.id %}" class="btn btn-outline-secondary">
+                                            <i class="fas fa-external-link-alt"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4">
+                                    <p class="text-muted mb-0">
+                                        <i class="fas fa-shopping-cart me-2"></i>У клиента пока нет заказов
+                                    </p>
+                                    {% if can_edit %}
+                                    <button class="btn btn-primary btn-sm mt-3"
+                                            data-modal-url="{% url 'order_create_modal' %}?client={{ client.id }}"
+                                            data-modal-title="Создать заказ"
+                                            data-modal-size="xl">
+                                        <i class="fas fa-plus me-1"></i>Создать первый заказ
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Order analytics chart -->
+        {% if orders %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Динамика заказов</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="ordersChart" height="100"></canvas>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if orders %}
+<script>
+// Orders chart
+const ctx = document.getElementById('ordersChart').getContext('2d');
+
+// Prepare data for the last 6 months
+const months = [];
+const orderCounts = [];
+const orderAmounts = [];
+
+// This would normally come from the backend
+// For demo purposes, using static data
+const monthNames = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн'];
+for (let i = 0; i < 6; i++) {
+    months.push(monthNames[i]);
+    orderCounts.push(Math.floor(Math.random() * 10) + 1);
+    orderAmounts.push(Math.floor(Math.random() * 50000) + 10000);
+}
+
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: months,
+        datasets: [{
+            label: 'Количество заказов',
+            data: orderCounts,
+            borderColor: '#4361ee',
+            backgroundColor: 'rgba(67, 97, 238, 0.1)',
+            yAxisID: 'y-count',
+            tension: 0.4
+        }, {
+            label: 'Сумма заказов',
+            data: orderAmounts,
+            borderColor: '#4cc9f0',
+            backgroundColor: 'rgba(76, 201, 240, 0.1)',
+            yAxisID: 'y-amount',
+            tension: 0.4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+            mode: 'index',
+            intersect: false,
+        },
+        plugins: {
+            legend: {
+                display: true,
+                position: 'bottom'
+            }
+        },
+        scales: {
+            'y-count': {
+                type: 'linear',
+                display: true,
+                position: 'left',
+                title: {
+                    display: true,
+                    text: 'Количество'
+                }
+            },
+            'y-amount': {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                title: {
+                    display: true,
+                    text: 'Сумма (₽)'
+                },
+                grid: {
+                    drawOnChartArea: false,
+                }
+            }
+        }
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

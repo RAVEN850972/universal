@@ -1,0 +1,511 @@
+{% extends "base.html" %}
+
+{% block title %}Финансы - Universal CRM{% endblock %}
+
+{% block page_title %}Финансовый обзор{% endblock %}
+
+{% block content %}
+<!-- Period selector -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Период</label>
+                <select name="period" class="form-select" onchange="this.form.submit()">
+                    <option value="current_month" {% if request.GET.period == 'current_month' or not request.GET.period %}selected{% endif %}>Текущий месяц</option>
+                    <option value="last_month" {% if request.GET.period == 'last_month' %}selected{% endif %}>Прошлый месяц</option>
+                    <option value="current_quarter" {% if request.GET.period == 'current_quarter' %}selected{% endif %}>Текущий квартал</option>
+                    <option value="current_year" {% if request.GET.period == 'current_year' %}selected{% endif %}>Текущий год</option>
+                    <option value="custom" {% if request.GET.period == 'custom' %}selected{% endif %}>Произвольный период</option>
+                </select>
+            </div>
+            
+            {% if request.GET.period == 'custom' %}
+            <div class="col-md-3">
+                <label class="form-label">Дата от</label>
+                <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Дата до</label>
+                <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}" required>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter me-1"></i>Применить
+                </button>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Financial stats -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon success">
+                <i class="fas fa-arrow-up"></i>
+            </div>
+            <h3 class="mb-1 text-success">{{ month_income|floatformat:0 }} ₽</h3>
+            <p class="text-muted mb-0">Доходы</p>
+            <small class="{% if income_change > 0 %}text-success{% else %}text-danger{% endif %}">
+                <i class="fas fa-{% if income_change > 0 %}arrow-up{% else %}arrow-down{% endif %} me-1"></i>
+                {{ income_change|floatformat:1 }}% к прошлому периоду
+            </small>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon danger">
+                <i class="fas fa-arrow-down"></i>
+            </div>
+            <h3 class="mb-1 text-danger">{{ month_expenses|floatformat:0 }} ₽</h3>
+            <p class="text-muted mb-0">Расходы</p>
+            <small class="{% if expense_change > 0 %}text-danger{% else %}text-success{% endif %}">
+                <i class="fas fa-{% if expense_change > 0 %}arrow-up{% else %}arrow-down{% endif %} me-1"></i>
+                {{ expense_change|floatformat:1 }}% к прошлому периоду
+            </small>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon {% if balance > 0 %}primary{% else %}warning{% endif %}">
+                <i class="fas fa-balance-scale"></i>
+            </div>
+            <h3 class="mb-1 {% if balance > 0 %}text-primary{% else %}text-warning{% endif %}">
+                {{ balance|floatformat:0 }} ₽
+            </h3>
+            <p class="text-muted mb-0">Баланс</p>
+            <small class="text-muted">
+                Маржа: {{ margin|floatformat:1 }}%
+            </small>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon info">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h3 class="mb-1">{{ projected_balance|floatformat:0 }} ₽</h3>
+            <p class="text-muted mb-0">Прогноз на конец периода</p>
+            <small class="text-info">
+                <i class="fas fa-info-circle me-1"></i>На основе текущих данных
+            </small>
+        </div>
+    </div>
+</div>
+
+<!-- Charts row -->
+<div class="row g-4 mb-4">
+    <!-- Income/Expense chart -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Динамика доходов и расходов</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="financeChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Expense structure -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Структура расходов</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="expenseChart" height="200"></canvas>
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span><i class="fas fa-circle text-primary me-2"></i>Зарплаты</span>
+                        <strong>{{ salary_expenses|floatformat:0 }} ₽</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span><i class="fas fa-circle text-warning me-2"></i>Операционные</span>
+                        <strong>{{ operational_expenses|floatformat:0 }} ₽</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span><i class="fas fa-circle text-info me-2"></i>Прочие</span>
+                        <strong>{{ other_expenses|floatformat:0 }} ₽</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Goals progress -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="mb-3">Цель по доходам</h6>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>{{ month_income|floatformat:0 }} ₽</span>
+                    <span class="text-muted">из {{ income_goal|floatformat:0 }} ₽</span>
+                </div>
+                <div class="progress" style="height: 25px;">
+                    <div class="progress-bar bg-success" role="progressbar" 
+                         style="width: {{ income_goal_percent }}%">
+                        {{ income_goal_percent|floatformat:0 }}%
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="mb-3">Контроль расходов</h6>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>{{ month_expenses|floatformat:0 }} ₽</span>
+                    <span class="text-muted">лимит {{ expense_limit|floatformat:0 }} ₽</span>
+                </div>
+                <div class="progress" style="height: 25px;">
+                    <div class="progress-bar {% if expense_control_percent > 100 %}bg-danger{% elif expense_control_percent > 80 %}bg-warning{% else %}bg-success{% endif %}" 
+                         role="progressbar" 
+                         style="width: {{ expense_control_percent }}%">
+                        {{ expense_control_percent|floatformat:0 }}%
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Current month progress -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="mb-4">Прогресс текущего месяца</h5>
+        <div class="row">
+            <div class="col-md-8">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Прошло дней в месяце</span>
+                        <strong>{{ month_progress|floatformat:0 }}%</strong>
+                    </div>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar" role="progressbar" style="width: {{ month_progress }}%"></div>
+                    </div>
+                </div>
+                
+                {% if company_user.role == 'executor' %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Завершено заказов</span>
+                        <strong>{{ current_completed_orders }}</strong>
+                    </div>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: {% widthratio current_completed_orders 10 100 %}%"></div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="col-md-4">
+                <div class="text-center">
+                    <h6 class="text-muted mb-2">Осталось дней</h6>
+                    <h2 class="mb-0 text-primary">{{ days_left }}</h2>
+                    <small class="text-muted">до конца месяца</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Salary stats -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon warning">
+                <i class="fas fa-gift"></i>
+            </div>
+            <h3 class="mb-1">{{ current_bonuses|floatformat:0 }} ₽</h3>
+            <p class="text-muted mb-0">Бонусы</p>
+            <small class="text-muted">Дополнительные выплаты</small>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon info">
+                <i class="fas fa-coins"></i>
+            </div>
+            <h3 class="mb-1 text-primary">{{ current_total|floatformat:0 }} ₽</h3>
+            <p class="text-muted mb-0">Итого к выплате</p>
+            <small class="text-success">За текущий месяц</small>
+        </div>
+    </div>
+</div>
+
+<!-- Salary history -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">История выплат</h5>
+        <button class="btn btn-sm btn-outline-primary" onclick="exportSalaryHistory()">
+            <i class="fas fa-download me-1"></i>Скачать
+        </button>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Период</th>
+                        <th>Оклад</th>
+                        <th>Комиссия</th>
+                        <th>Бонусы</th>
+                        <th>Штрафы</th>
+                        <th>Итого</th>
+                        <th>Статус</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for calc in salary_calculations %}
+                    <tr>
+                        <td>
+                            <strong>{{ calc.get_period_display }}</strong>
+                            <br>
+                            <small class="text-muted">{{ calc.period_month }}/{{ calc.period_year }}</small>
+                        </td>
+                        <td>{{ calc.base_salary|floatformat:0 }} ₽</td>
+                        <td>{{ calc.commission_total|floatformat:0 }} ₽</td>
+                        <td>{{ calc.bonuses|floatformat:0 }} ₽</td>
+                        <td class="text-danger">-{{ calc.penalties|floatformat:0 }} ₽</td>
+                        <td class="fw-bold">{{ calc.total_amount|floatformat:0 }} ₽</td>
+                        <td>
+                            {% if calc.is_paid %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check me-1"></i>Выплачено
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-clock me-1"></i>Ожидает
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" 
+                                    onclick="showSalaryDetails({{ calc.id }})">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4">
+                            <p class="text-muted mb-0">
+                                <i class="fas fa-file-invoice-dollar me-2"></i>История выплат пока пуста
+                            </p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Performance bonus info -->
+{% if company_user.role == 'executor' %}
+<div class="row mt-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Показатели эффективности</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="performanceChart" height="150"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Условия премирования</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6 class="text-muted">Базовая комиссия</h6>
+                    <p class="mb-0">{{ company_user.commission_rate }}% от выполненных заказов</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="text-muted">Бонусы за объем</h6>
+                    <ul class="mb-0">
+                        <li>10+ заказов в месяц: +5% к комиссии</li>
+                        <li>20+ заказов в месяц: +10% к комиссии</li>
+                        <li>30+ заказов в месяц: +15% к комиссии</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h6 class="text-muted">Штрафы</h6>
+                    <ul class="mb-0">
+                        <li>Опоздание: -500 ₽</li>
+                        <li>Невыполнение заказа: -1000 ₽</li>
+                        <li>Жалоба клиента: -2000 ₽</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recent transactions -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Последние операции</h5>
+        <div>
+            <button class="btn btn-primary btn-sm"
+                    data-modal-url="{% url 'transaction_create_modal' %}"
+                    data-modal-title="Добавить операцию"
+                    data-modal-size="lg">
+                <i class="fas fa-plus me-1"></i>Добавить
+            </button>
+            <a href="{% url 'transactions_list' %}" class="btn btn-outline-secondary btn-sm ms-2">
+                <i class="fas fa-list me-1"></i>Все операции
+            </a>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Тип</th>
+                        <th>Описание</th>
+                        <th>Заказ</th>
+                        <th>Сумма</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in recent_transactions %}
+                    <tr>
+                        <td>{{ transaction.transaction_date|date:"d.m.Y" }}</td>
+                        <td>
+                            {% if transaction.transaction_type == 'income' %}
+                                <span class="badge bg-success">Доход</span>
+                            {% elif transaction.transaction_type == 'expense' %}
+                                <span class="badge bg-danger">Расход</span>
+                            {% elif transaction.transaction_type == 'salary' %}
+                                <span class="badge bg-warning">Зарплата</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ transaction.get_transaction_type_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ transaction.description|truncatechars:50 }}</td>
+                        <td>
+                            {% if transaction.order %}
+                            <a href="#" 
+                               data-modal-url="{% url 'order_detail_modal' transaction.order.id %}"
+                               data-modal-title="Заказ #{{ transaction.order.id }}"
+                               data-modal-size="xl">
+                                #{{ transaction.order.id }}
+                            </a>
+                            {% else %}
+                            —
+                            {% endif %}
+                        </td>
+                        <td class="fw-semibold {% if transaction.transaction_type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                            {% if transaction.transaction_type == 'income' %}+{% else %}-{% endif %}
+                            {{ transaction.amount|floatformat:0 }} ₽
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">
+                            <i class="fas fa-receipt me-2"></i>Нет операций за выбранный период
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Finance chart
+const financeCtx = document.getElementById('financeChart').getContext('2d');
+new Chart(financeCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ chart_labels|safe }},
+        datasets: [{
+            label: 'Доходы',
+            data: {{ income_data|safe }},
+            backgroundColor: 'rgba(76, 201, 240, 0.8)',
+            borderColor: '#4cc9f0',
+            borderWidth: 2
+        }, {
+            label: 'Расходы',
+            data: {{ expense_data|safe }},
+            backgroundColor: 'rgba(247, 37, 133, 0.8)',
+            borderColor: '#f72585',
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'bottom'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return value.toLocaleString('ru-RU') + ' ₽';
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Expense structure chart
+const expenseCtx = document.getElementById('expenseChart').getContext('2d');
+new Chart(expenseCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Зарплаты', 'Операционные', 'Прочие'],
+        datasets: [{
+            data: [
+                {{ salary_expenses|default:0 }},
+                {{ operational_expenses|default:0 }},
+                {{ other_expenses|default:0 }}
+            ],
+            backgroundColor: ['#4361ee', '#f77f00', '#4895ef'],
+            borderWidth: 0
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

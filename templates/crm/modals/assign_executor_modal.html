@@ -1,0 +1,156 @@
+{% extends "crm/modals/base_modal.html" %}
+
+{% block modal_title %}Назначить исполнителя{% endblock %}
+
+{% block modal_body %}
+<div class="alert alert-info mb-4">
+    <i class="fas fa-info-circle me-2"></i>
+    Назначение исполнителя для заказа <strong>#{{ order.id }}</strong> на сумму <strong>{{ order.total_amount|floatformat:0 }} ₽</strong>
+</div>
+
+<form id="assignExecutorForm" method="post">
+    {% csrf_token %}
+    
+    <div class="mb-3">
+        <label class="form-label">Выберите исполнителя</label>
+        <select name="executor_id" class="form-select" required id="executorSelect">
+            <option value="">-- Выберите исполнителя --</option>
+            {% for executor in executors %}
+            <option value="{{ executor.user.id }}" 
+                    data-order-rate="{{ executor.order_rate }}"
+                    data-executor-name="{{ executor.user.get_full_name }}">
+                {{ executor.user.get_full_name }} 
+                {% if executor.order_rate > 0 %}
+                    (базовая ставка: {{ executor.order_rate|floatformat:0 }}₽/заказ)
+                {% else %}
+                    (ставка не установлена)
+                {% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="mb-3">
+        <label class="form-label">Ставка за выполнение заказа</label>
+        <div class="input-group">
+            <input type="number" name="order_rate" class="form-control" 
+                   step="1" min="0" value="{{ suggested_rate }}" id="orderRate">
+            <span class="input-group-text">₽</span>
+        </div>
+        <div class="form-text">
+            <small class="text-muted">
+                Рекомендуемая ставка для данного заказа: <strong>{{ suggested_rate }}₽</strong>
+            </small>
+        </div>
+    </div>
+    
+    <div class="mb-3">
+        <label class="form-label">Примечания к заказу</label>
+        <textarea name="notes" class="form-control" rows="3" 
+                  placeholder="Дополнительные инструкции или особенности выполнения..."></textarea>
+    </div>
+    
+    <div class="card bg-light">
+        <div class="card-body">
+            <h6 class="card-title">Условия оплаты</h6>
+            <div class="d-flex justify-content-between mb-2">
+                <span>Исполнитель:</span>
+                <strong id="selectedExecutor">Не выбран</strong>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span>Ставка за заказ:</span>
+                <strong><span id="displayRate">{{ suggested_rate }}</span> ₽</strong>
+            </div>
+            <hr>
+            <div class="d-flex justify-content-between">
+                <span>К оплате при завершении:</span>
+                <strong class="text-success"><span id="totalPayment">{{ suggested_rate }}</span> ₽</strong>
+            </div>
+            
+            <div class="mt-3">
+                <small class="text-muted">
+                    <i class="fas fa-info-circle"></i>
+                    Оплата производится только после завершения заказа исполнителем
+                </small>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if order.executors.exists %}
+<hr>
+<h6>Уже назначенные исполнители:</h6>
+<div class="list-group">
+    {% for executor in order.executors.all %}
+    <div class="list-group-item">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <strong>{{ executor.user.get_full_name }}</strong>
+                <div class="small text-muted">
+                    Ставка: {{ executor.order_rate|floatformat:0 }}₽ за заказ
+                    {% if executor.notes %}
+                    <br>{{ executor.notes }}
+                    {% endif %}
+                </div>
+            </div>
+            <div class="text-end">
+                <span class="badge bg-{{ executor.status|default:'secondary' }}">
+                    {{ executor.get_status_display }}
+                </span>
+                {% if executor.status == 'completed' %}
+                <div class="small text-success mt-1">
+                    Выплачено: {{ executor.payment_amount|floatformat:0 }}₽
+                </div>
+                {% else %}
+                <div class="small text-muted mt-1">
+                    К выплате: {{ executor.payment_amount|floatformat:0 }}₽
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const executorSelect = document.getElementById('executorSelect');
+    const orderRate = document.getElementById('orderRate');
+    const selectedExecutor = document.getElementById('selectedExecutor');
+    const displayRate = document.getElementById('displayRate');
+    const totalPayment = document.getElementById('totalPayment');
+    
+    function updateCalculation() {
+        const rate = parseFloat(orderRate.value) || 0;
+        
+        displayRate.textContent = rate;
+        totalPayment.textContent = rate;
+    }
+    
+    executorSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption.value) {
+            const executorName = selectedOption.getAttribute('data-executor-name');
+            const baseRate = parseFloat(selectedOption.getAttribute('data-order-rate')) || 0;
+            
+            selectedExecutor.textContent = executorName;
+            
+            // Если у исполнителя есть базовая ставка и она больше текущей, используем её
+            const currentRate = parseFloat(orderRate.value) || 0;
+            if (baseRate > 0 && baseRate !== currentRate) {
+                orderRate.value = Math.max(baseRate, currentRate);
+                updateCalculation();
+            }
+        } else {
+            selectedExecutor.textContent = 'Не выбран';
+        }
+    });
+    
+    orderRate.addEventListener('input', updateCalculation);
+    
+    // Инициализация
+    updateCalculation();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,592 @@
+<!-- templates/crm/modals/order_create_modal.html -->
+<form method="post" id="orderCreateForm">
+    {% csrf_token %}
+    
+    <!-- Основная информация -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h6 class="text-primary mb-3">
+                <i class="fas fa-info-circle me-2"></i>Основная информация
+            </h6>
+        </div>
+    </div>
+    
+    <div class="mb-3">
+        <label for="id_client" class="form-label">Клиент *</label>
+        <div class="input-group">
+            <select class="form-select" id="id_client" name="client" required>
+                <option value="">Выберите клиента</option>
+                {% for client in clients %}
+                <option value="{{ client.id }}">{{ client.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="button" class="btn btn-outline-secondary" 
+                    data-modal-url="{% url 'client_create_modal' %}"
+                    data-modal-title="Создать нового клиента"
+                    data-modal-size="lg"
+                    title="Добавить нового клиента">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+        <div class="form-text">Если нужного клиента нет в списке, создайте его с помощью кнопки "+"</div>
+    </div>
+    
+    <div class="mb-3">
+        <label for="id_description" class="form-label">Описание заказа *</label>
+        <textarea class="form-control" id="id_description" name="description" 
+                  rows="3" required placeholder="Подробно опишите что нужно сделать"></textarea>
+    </div>
+    
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label for="id_order_date" class="form-label">Дата заказа *</label>
+            <input type="datetime-local" class="form-control" id="id_order_date" 
+                   name="order_date" required>
+        </div>
+        <div class="col-md-6">
+            <label for="id_deadline" class="form-label">Срок выполнения</label>
+            <input type="datetime-local" class="form-control" id="id_deadline" name="deadline">
+        </div>
+    </div>
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <label for="id_priority" class="form-label">Приоритет</label>
+            <select class="form-select" id="id_priority" name="priority">
+                <option value="normal" selected>Обычный</option>
+                <option value="high">Высокий</option>
+                <option value="urgent">Срочный</option>
+            </select>
+        </div>
+    </div>
+    
+    <!-- Услуги -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h6 class="text-primary mb-3">
+                <i class="fas fa-concierge-bell me-2"></i>Услуги
+            </h6>
+        </div>
+    </div>
+    
+    <div class="mb-3">
+        <div class="row mb-2">
+            <div class="col-md-8">
+                <select class="form-select" id="id_service">
+                    <option value="">Выберите услугу для добавления</option>
+                    {% for service in services %}
+                    <option value="{{ service.id }}" data-price="{{ service.base_price }}">
+                        {{ service.name }} - {{ service.base_price|floatformat:0 }} ₽
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button type="button" class="btn btn-primary w-100" id="addService">
+                    <i class="fas fa-plus me-2"></i>Добавить услугу
+                </button>
+            </div>
+        </div>
+        
+        <div id="servicesList" class="services-container">
+            <!-- Услуги будут добавляться сюда динамически -->
+        </div>
+        
+        <div class="mt-3 p-3 bg-light rounded">
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Количество услуг: <span id="servicesCount">0</span></strong>
+                </div>
+                <div class="col-md-6 text-end">
+                    <strong>Общая сумма: <span id="orderTotal" class="text-primary">0 ₽</span></strong>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Исполнители -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h6 class="text-primary mb-3">
+                <i class="fas fa-users me-2"></i>Исполнители
+            </h6>
+        </div>
+    </div>
+    
+    <div class="mb-3">
+        <div class="row mb-2">
+            <div class="col-md-6">
+                <select class="form-select" id="id_executor">
+                    <option value="">Выберите исполнителя</option>
+                    {% for executor in executors %}
+                    <option value="{{ executor.user.id }}" 
+                            data-name="{{ executor.user.get_full_name }}"
+                            data-rate="{{ executor.hourly_rate|default:0 }}">
+                        {{ executor.user.get_full_name }} 
+                        {% if executor.hourly_rate %}({{ executor.hourly_rate }} ₽/час){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <input type="number" class="form-control" id="executor_hours" 
+                       placeholder="Часов" min="0.1" step="0.1" value="8">
+            </div>
+            <div class="col-md-3">
+                <button type="button" class="btn btn-success w-100" id="addExecutor">
+                    <i class="fas fa-user-plus me-2"></i>Назначить
+                </button>
+            </div>
+        </div>
+        
+        <div id="executorsList" class="executors-container">
+            <!-- Исполнители будут добавляться сюда -->
+        </div>
+        
+        <div class="mt-2">
+            <small class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                Исполнителей можно назначить сейчас или добавить позже после создания заказа
+            </small>
+        </div>
+    </div>
+    
+    <!-- Дополнительная информация -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <h6 class="text-primary mb-3">
+                <i class="fas fa-sticky-note me-2"></i>Дополнительная информация
+            </h6>
+        </div>
+    </div>
+    
+    <div class="mb-3">
+        <label for="id_notes" class="form-label">Заметки</label>
+        <textarea class="form-control" id="id_notes" name="notes" rows="2"
+                  placeholder="Особые требования или комментарии к заказу"></textarea>
+    </div>
+    
+    <!-- Скрытые поля для отправки данных -->
+    <input type="hidden" id="services_data" name="services_data" value="[]">
+    <input type="hidden" id="executors_data" name="executors_data" value="[]">
+    
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-2"></i>Создать заказ
+        </button>
+    </div>
+</form>
+
+<script>
+// Set current datetime as default
+document.getElementById('id_order_date').value = new Date().toISOString().slice(0, 16);
+
+// Enhanced Order Creation Manager
+class OrderCreationManager {
+    constructor() {
+        this.services = [];
+        this.executors = [];
+        this.initializeElements();
+        this.setupEventListeners();
+    }
+    
+    initializeElements() {
+        this.servicesList = document.getElementById('servicesList');
+        this.executorsList = document.getElementById('executorsList');
+        this.addServiceBtn = document.getElementById('addService');
+        this.addExecutorBtn = document.getElementById('addExecutor');
+        this.serviceSelect = document.getElementById('id_service');
+        this.executorSelect = document.getElementById('id_executor');
+        this.executorHours = document.getElementById('executor_hours');
+    }
+    
+    setupEventListeners() {
+        this.addServiceBtn.addEventListener('click', () => this.addService());
+        this.addExecutorBtn.addEventListener('click', () => this.addExecutor());
+        
+        // Add service on Enter key in select
+        this.serviceSelect.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.addService();
+            }
+        });
+        
+        // Form validation
+        document.getElementById('orderCreateForm').addEventListener('submit', (e) => {
+            this.validateForm(e);
+        });
+    }
+    
+    addService() {
+        const selectedOption = this.serviceSelect.options[this.serviceSelect.selectedIndex];
+        if (!selectedOption || !selectedOption.value) {
+            this.showAlert('Пожалуйста, выберите услугу', 'warning');
+            return;
+        }
+        
+        const serviceId = selectedOption.value;
+        
+        // Check if service already added
+        if (this.services.find(s => s.id === serviceId)) {
+            this.showAlert('Эта услуга уже добавлена', 'warning');
+            return;
+        }
+        
+        const service = {
+            id: serviceId,
+            name: selectedOption.text.split(' - ')[0],
+            price: parseFloat(selectedOption.dataset.price) || 0,
+            quantity: 1
+        };
+        
+        this.services.push(service);
+        this.renderServices();
+        this.updateTotals();
+        
+        // Reset select
+        this.serviceSelect.selectedIndex = 0;
+    }
+    
+    addExecutor() {
+        const selectedOption = this.executorSelect.options[this.executorSelect.selectedIndex];
+        if (!selectedOption || !selectedOption.value) {
+            this.showAlert('Пожалуйста, выберите исполнителя', 'warning');
+            return;
+        }
+        
+        const executorId = selectedOption.value;
+        const hours = parseFloat(this.executorHours.value) || 8;
+        
+        // Check if executor already added
+        if (this.executors.find(e => e.id === executorId)) {
+            this.showAlert('Этот исполнитель уже назначен', 'warning');
+            return;
+        }
+        
+        const executor = {
+            id: executorId,
+            name: selectedOption.dataset.name,
+            hours: hours,
+            rate: parseFloat(selectedOption.dataset.rate) || 0
+        };
+        
+        this.executors.push(executor);
+        this.renderExecutors();
+        
+        // Reset select and hours
+        this.executorSelect.selectedIndex = 0;
+        this.executorHours.value = 8;
+    }
+    
+    removeService(serviceId) {
+        this.services = this.services.filter(s => s.id !== serviceId);
+        this.renderServices();
+        this.updateTotals();
+    }
+    
+    removeExecutor(executorId) {
+        this.executors = this.executors.filter(e => e.id !== executorId);
+        this.renderExecutors();
+    }
+    
+    updateService(serviceId, field, value) {
+        const service = this.services.find(s => s.id === serviceId);
+        if (service) {
+            service[field] = parseFloat(value) || 0;
+            this.updateTotals();
+            this.updateServiceTotal(serviceId);
+        }
+    }
+    
+    updateExecutor(executorId, field, value) {
+        const executor = this.executors.find(e => e.id === executorId);
+        if (executor) {
+            executor[field] = parseFloat(value) || 0;
+            this.updateExecutorTotal(executorId);
+        }
+    }
+    
+    renderServices() {
+        if (this.services.length === 0) {
+            this.servicesList.innerHTML = `
+                <div class="text-center text-muted py-4 border-2 border-dashed border-secondary rounded">
+                    <i class="fas fa-concierge-bell fa-2x mb-2"></i>
+                    <p class="mb-0">Добавьте услуги для заказа</p>
+                </div>
+            `;
+            return;
+        }
+        
+        this.servicesList.innerHTML = this.services.map(service => `
+            <div class="service-row mb-3 p-3 border rounded bg-white" data-service-id="${service.id}">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <div class="fw-bold text-primary">${service.name}</div>
+                        <small class="text-muted">ID: ${service.id}</small>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Количество</label>
+                        <input type="number" class="form-control form-control-sm quantity-input" 
+                               value="${service.quantity}" min="0.1" step="0.1" 
+                               data-service-id="${service.id}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Цена за единицу</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" class="form-control price-input" 
+                                   value="${service.price}" min="0" step="0.01" 
+                                   data-service-id="${service.id}">
+                            <span class="input-group-text">₽</span>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Сумма</label>
+                        <div class="fw-bold text-success service-total">
+                            ${this.formatCurrency(service.quantity * service.price)}
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-service"
+                                data-service-id="${service.id}" title="Удалить услугу">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        this.attachServiceEventListeners();
+    }
+    
+    renderExecutors() {
+        if (this.executors.length === 0) {
+            this.executorsList.innerHTML = `
+                <div class="text-center text-muted py-4 border-2 border-dashed border-secondary rounded">
+                    <i class="fas fa-users fa-2x mb-2"></i>
+                    <p class="mb-0">Исполнители не назначены</p>
+                    <small>Можно назначить позже</small>
+                </div>
+            `;
+            return;
+        }
+        
+        this.executorsList.innerHTML = this.executors.map(executor => `
+            <div class="executor-row mb-3 p-3 border rounded bg-light" data-executor-id="${executor.id}">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <div class="fw-bold text-info">
+                            <i class="fas fa-user me-2"></i>${executor.name}
+                        </div>
+                        <small class="text-muted">ID: ${executor.id}</small>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Часов работы</label>
+                        <input type="number" class="form-control form-control-sm hours-input" 
+                               value="${executor.hours}" min="0.1" step="0.1" 
+                               data-executor-id="${executor.id}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Ставка (₽/час)</label>
+                        <input type="number" class="form-control form-control-sm rate-input" 
+                               value="${executor.rate}" min="0" step="0.01" 
+                               data-executor-id="${executor.id}">
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label small">Сумма</label>
+                        <div class="fw-bold text-warning executor-total">
+                            ${this.formatCurrency(executor.hours * executor.rate)}
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-executor"
+                                data-executor-id="${executor.id}" title="Убрать исполнителя">
+                            <i class="fas fa-user-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        this.attachExecutorEventListeners();
+    }
+    
+    attachServiceEventListeners() {
+        this.servicesList.querySelectorAll('.quantity-input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                this.updateService(e.target.dataset.serviceId, 'quantity', e.target.value);
+            });
+        });
+        
+        this.servicesList.querySelectorAll('.price-input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                this.updateService(e.target.dataset.serviceId, 'price', e.target.value);
+            });
+        });
+        
+        this.servicesList.querySelectorAll('.remove-service').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.removeService(e.target.closest('[data-service-id]').dataset.serviceId);
+            });
+        });
+    }
+    
+    attachExecutorEventListeners() {
+        this.executorsList.querySelectorAll('.hours-input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                this.updateExecutor(e.target.dataset.executorId, 'hours', e.target.value);
+            });
+        });
+        
+        this.executorsList.querySelectorAll('.rate-input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                this.updateExecutor(e.target.dataset.executorId, 'rate', e.target.value);
+            });
+        });
+        
+        this.executorsList.querySelectorAll('.remove-executor').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.removeExecutor(e.target.closest('[data-executor-id]').dataset.executorId);
+            });
+        });
+    }
+    
+    updateServiceTotal(serviceId) {
+        const service = this.services.find(s => s.id === serviceId);
+        if (service) {
+            const total = service.quantity * service.price;
+            const totalElement = document.querySelector(`[data-service-id="${serviceId}"] .service-total`);
+            if (totalElement) {
+                totalElement.textContent = this.formatCurrency(total);
+            }
+        }
+    }
+    
+    updateExecutorTotal(executorId) {
+        const executor = this.executors.find(e => e.id === executorId);
+        if (executor) {
+            const total = executor.hours * executor.rate;
+            const totalElement = document.querySelector(`[data-executor-id="${executorId}"] .executor-total`);
+            if (totalElement) {
+                totalElement.textContent = this.formatCurrency(total);
+            }
+        }
+    }
+    
+    updateTotals() {
+        const totalAmount = this.services.reduce((sum, service) => {
+            return sum + (service.quantity * service.price);
+        }, 0);
+        
+        document.getElementById('servicesCount').textContent = this.services.length;
+        document.getElementById('orderTotal').textContent = this.formatCurrency(totalAmount);
+        
+        // Update hidden inputs for form submission
+        document.getElementById('services_data').value = JSON.stringify(this.services);
+        document.getElementById('executors_data').value = JSON.stringify(this.executors);
+    }
+    
+    validateForm(e) {
+        const clientSelect = document.getElementById('id_client');
+        const description = document.getElementById('id_description');
+        
+        if (!clientSelect.value) {
+            e.preventDefault();
+            this.showAlert('Пожалуйста, выберите клиента', 'danger');
+            clientSelect.focus();
+            return;
+        }
+        
+        if (!description.value.trim()) {
+            e.preventDefault();
+            this.showAlert('Пожалуйста, введите описание заказа', 'danger');
+            description.focus();
+            return;
+        }
+        
+        if (this.services.length === 0) {
+            const confirm = window.confirm('Вы не добавили ни одной услуги. Продолжить создание заказа?');
+            if (!confirm) {
+                e.preventDefault();
+                return;
+            }
+        }
+        
+        // Update hidden fields before submission
+        this.updateTotals();
+    }
+    
+    formatCurrency(amount) {
+        return new Intl.NumberFormat('ru-RU', {
+            style: 'currency',
+            currency: 'RUB',
+            minimumFractionDigits: 0
+        }).format(amount);
+    }
+    
+    showAlert(message, type = 'info') {
+        // Simple alert for now, can be enhanced with custom notifications
+        if (type === 'danger') {
+            alert('❌ ' + message);
+        } else if (type === 'warning') {
+            alert('⚠️ ' + message);
+        } else {
+            alert('ℹ️ ' + message);
+        }
+    }
+}
+
+// Initialize order creation manager
+const orderManager = new OrderCreationManager();
+</script>
+
+<style>
+.services-container, .executors-container {
+    min-height: 60px;
+}
+
+.service-row {
+    transition: all 0.2s ease;
+    border-left: 4px solid #007bff !important;
+}
+
+.service-row:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+
+.executor-row {
+    transition: all 0.2s ease;
+    border-left: 4px solid #17a2b8 !important;
+}
+
+.executor-row:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+
+.quantity-input, .price-input, .hours-input, .rate-input {
+    text-align: center;
+}
+
+.remove-service:hover, .remove-executor:hover {
+    transform: scale(1.1);
+}
+
+@media (max-width: 768px) {
+    .service-row .row, .executor-row .row {
+        flex-direction: column;
+    }
+    
+    .service-row .col-md-1,
+    .service-row .col-md-2,
+    .service-row .col-md-3,
+    .service-row .col-md-4,
+    .executor-row .col-md-1,
+    .executor-row .col-md-3,
+    .executor-row .col-md-4 {
+        margin-bottom: 10px;
+    }
+}
+</style>

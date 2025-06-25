@@ -1,0 +1,351 @@
+<!-- templates/crm/finances/my_salary.html -->
+{% extends "base.html" %}
+
+{% block title %}Моя зарплата - Universal CRM{% endblock %}
+
+{% block page_title %}Моя зарплата{% endblock %}
+
+{% block content %}
+<!-- Current month stats -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon primary">
+                <i class="fas fa-wallet"></i>
+            </div>
+            <h3 class="mb-1">{{ company_user.salary_rate|floatformat:0 }} ₽</h3>
+            <p class="text-muted mb-0">Оклад</p>
+            <small class="text-muted">Фиксированная часть</small>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon success">
+                <i class="fas fa-tasks"></i>
+            </div>
+            <h3 class="mb-1">{{ current_orders_payment|floatformat:0 }} ₽</h3>
+            <p class="text-muted mb-0">За заказы</p>
+            <small class="text-muted">{{ company_user.order_rate }}₽ × {{ current_orders }}шт</small>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon warning">
+                <i class="fas fa-gift"></i>
+            </div>
+            <h3 class="mb-1">{{ current_bonuses|floatformat:0 }} ₽</h3>
+            <p class="text-muted mb-0">Бонусы</p>
+            <small class="text-muted">За количество заказов</small>
+        </div>
+    </div>
+    
+    <div class="col-md-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-icon info">
+                <i class="fas fa-coins"></i>
+            </div>
+            <h3 class="mb-1 text-primary">{{ current_total|floatformat:0 }} ₽</h3>
+            <p class="text-muted mb-0">Итого к выплате</p>
+            <small class="text-success">За текущий месяц</small>
+        </div>
+    </div>
+</div>
+
+<!-- Current month progress -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0">Прогресс текущего месяца</h5>
+            <span class="badge bg-primary">{{ days_left }} дней до конца месяца</span>
+        </div>
+        
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon-sm success me-3">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0">{{ current_orders }}</h6>
+                        <small class="text-muted">Завершено заказов</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon-sm warning me-3">
+                        <i class="fas fa-hourglass-half"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0">{{ current_pending_orders }}</h6>
+                        <small class="text-muted">В работе</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon-sm info me-3">
+                        <i class="fas fa-ruble-sign"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0">{{ company_user.order_rate|floatformat:0 }} ₽</h6>
+                        <small class="text-muted">Ставка за заказ</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Progress bar -->
+        <div class="mt-4">
+            <div class="d-flex justify-content-between small text-muted mb-2">
+                <span>Прогресс месяца</span>
+                <span>{{ month_progress|floatformat:0 }}%</span>
+            </div>
+            <div class="progress" style="height: 8px;">
+                <div class="progress-bar" role="progressbar" 
+                     style="width: {{ month_progress }}%"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent completed orders -->
+{% if company_user.role == 'executor' and recent_orders %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Недавно завершенные заказы</h5>
+    </div>
+    <div class="card-body">
+        <div class="list-group list-group-flush">
+            {% for order_exec in recent_orders %}
+            <div class="list-group-item px-0">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="mb-1">Заказ #{{ order_exec.order.id }}</h6>
+                        <p class="mb-1 text-muted">{{ order_exec.order.client.name }}</p>
+                        <small class="text-muted">
+                            Завершен: {{ order_exec.completed_at|date:"d.m.Y" }} | 
+                            Ставка: {{ order_exec.order_rate|floatformat:0 }}₽
+                        </small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-success">{{ order_exec.payment_amount|floatformat:0 }} ₽</span>
+                        <div class="small text-muted mt-1">
+                            {{ order_exec.order.total_amount|floatformat:0 }}₽ (заказ)
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Salary history -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">История выплат</h5>
+        {% if company_user.role == 'manager' or company_user.role == 'owner' %}
+        <button type="button" class="btn btn-primary btn-sm" 
+                onclick="calculateCurrentSalary()">
+            <i class="fas fa-calculator"></i> Рассчитать за текущий месяц
+        </button>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Период</th>
+                        <th>Оклад</th>
+                        <th>Заказов</th>
+                        <th>За заказы</th>
+                        <th>Бонусы</th>
+                        <th>Штрафы</th>
+                        <th>Итого</th>
+                        <th>Статус</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for calc in salary_calculations %}
+                    <tr>
+                        <td>
+                            <strong>{{ calc.period_month|stringformat:"02d" }}/{{ calc.period_year }}</strong>
+                            <div class="small text-muted">{{ calc.calculated_at|date:"d.m.Y" }}</div>
+                        </td>
+                        <td>{{ calc.base_salary|floatformat:0 }} ₽</td>
+                        <td>
+                            <span class="badge bg-info">{{ calc.completed_orders }}</span>
+                            {% if calc.completed_orders > 0 %}
+                            <div class="small text-muted">
+                                ~{{ calc.average_per_order|floatformat:0 }}₽/заказ
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td>{{ calc.orders_payment|floatformat:0 }} ₽</td>
+                        <td>
+                            {% if calc.bonuses > 0 %}
+                                <span class="text-success">+{{ calc.bonuses|floatformat:0 }} ₽</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if calc.penalties > 0 %}
+                                <span class="text-danger">-{{ calc.penalties|floatformat:0 }} ₽</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong class="text-primary">{{ calc.total_amount|floatformat:0 }} ₽</strong>
+                        </td>
+                        <td>
+                            {% if calc.is_paid %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check"></i> Выплачено
+                                </span>
+                                <div class="small text-muted">{{ calc.paid_at|date:"d.m.Y" }}</div>
+                            {% else %}
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-clock"></i> Ожидает
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-outline-primary btn-sm" 
+                                    onclick="showSalaryDetails({{ calc.id }})">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center py-4">
+                            <p class="text-muted mb-0">
+                                <i class="fas fa-file-invoice-dollar me-2"></i>История выплат пока пуста
+                            </p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Performance bonus info -->
+{% if company_user.role == 'executor' %}
+<div class="row mt-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Статистика выполнения</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="text-center">
+                            <h4 class="text-primary mb-1">{{ current_orders }}</h4>
+                            <small class="text-muted">Заказов в месяце</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center">
+                            <h4 class="text-success mb-1">{{ current_average_per_order|floatformat:0 }}₽</h4>
+                            <small class="text-muted">Средняя ставка</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <canvas id="performanceChart" height="150" class="mt-3"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Система оплаты</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h6 class="text-muted">Базовая ставка за заказ</h6>
+                    <p class="mb-0 h4 text-primary">{{ company_user.order_rate|floatformat:0 }} ₽</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="text-muted">Бонусы за активность</h6>
+                    <ul class="mb-0">
+                        <li>10+ заказов в месяц: <strong>+10%</strong> к каждому заказу</li>
+                        <li>20+ заказов в месяц: <strong>+15%</strong> к каждому заказу</li>
+                        <li>30+ заказов в месяц: <strong>+25%</strong> к каждому заказу</li>
+                    </ul>
+                </div>
+                
+                <div class="alert alert-info">
+                    <small>
+                        <i class="fas fa-info-circle"></i>
+                        Оплата начисляется только за завершенные заказы. 
+                        Ставка может изменяться в зависимости от сложности заказа.
+                    </small>
+                </div>
+                
+                {% if current_orders >= 10 %}
+                <div class="alert alert-success">
+                    <small>
+                        <i class="fas fa-star"></i>
+                        <strong>Бонус активирован!</strong> 
+                        Вы выполнили {{ current_orders }} заказов в этом месяце.
+                    </small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function calculateCurrentSalary() {
+    if (confirm('Рассчитать зарплату за текущий месяц?')) {
+        const currentDate = new Date();
+        fetch('/api/salary/calculate/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                user_id: {{ user.id }},
+                year: currentDate.getFullYear(),
+                month: currentDate.getMonth() + 1
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showSuccess('Зарплата рассчитана успешно');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showError(data.error || 'Ошибка при расчете зарплаты');
+            }
+        })
+        .catch(error => {
+            showError('Произошла ошибка');
+        });
+    }
+}
+
+function showSalaryDetails(salaryId) {
+    loadModal(`/modals/salary/${salaryId}/detail/`, 'Детали расчета', 'lg');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,506 @@
+/* dashboard.css - исправленная версия */
+
+/* === ОСНОВНЫЕ СТИЛИ ДАШБОРДА === */
+.dashboard-page {
+    background: var(--bs-gray-100);
+    min-height: 100vh;
+}
+
+/* === СТАТИСТИЧЕСКИЕ КАРТОЧКИ === */
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    font-size: 20px;
+}
+
+.stat-icon.primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.stat-icon.success {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    color: white;
+}
+
+.stat-icon.warning {
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+    color: white;
+}
+
+.stat-icon.danger {
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+    color: white;
+}
+
+/* === ОСНОВНОЙ LAYOUT ДАШБОРДА === */
+.dashboard-sidebar {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* === КАРТОЧКИ ДАШБОРДА === */
+.dashboard-card,
+.sidebar-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-card {
+    max-height: none; /* Основные карточки без ограничения */
+}
+
+.sidebar-card {
+    max-height: 400px; /* Боковые карточки ограничены */
+}
+
+.dashboard-card:hover,
+.sidebar-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e9ecef;
+    background: #f8f9fa;
+    flex-shrink: 0;
+}
+
+.card-body {
+    padding: 20px 24px;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.card-footer {
+    padding: 12px 24px;
+    border-top: 1px solid #e9ecef;
+    background: #f8f9fa;
+    flex-shrink: 0;
+}
+
+/* === ГРАФИКИ === */
+.chart-container {
+    position: relative;
+    height: 300px;
+    padding: 10px 0;
+}
+
+.chart-container-small {
+    position: relative;
+    height: 200px;
+    padding: 10px 0;
+}
+
+/* === СТАТУСЫ ЗАКАЗОВ === */
+.status-summary {
+    font-size: 14px;
+}
+
+.status-summary .d-flex {
+    padding: 8px 0;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.status-summary .d-flex:last-child {
+    border-bottom: none;
+}
+
+/* === БЕЙДЖИ СТАТУСОВ === */
+.badge-new {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-in-progress {
+    background: #fff3e0;
+    color: #f57c00;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-completed {
+    background: #e8f5e8;
+    color: #2e7d32;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-cancelled {
+    background: #ffebee;
+    color: #c62828;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* === АКТИВНОСТЬ / УВЕДОМЛЕНИЯ === */
+.activity-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 12px;
+}
+
+.activity-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.activity-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #2d3748;
+    margin-bottom: 2px;
+}
+
+.activity-time {
+    font-size: 12px;
+    color: #718096;
+}
+
+/* === БЫСТРЫЕ ДЕЙСТВИЯ === */
+.quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.quick-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 12px;
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    color: #2d3748;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+}
+
+.quick-action:hover {
+    border-color: #6c5ce7;
+    background: #f0f0ff;
+    transform: translateY(-2px);
+    text-decoration: none;
+    color: #6c5ce7;
+}
+
+.quick-action i {
+    font-size: 18px;
+    color: #6c5ce7;
+}
+
+.quick-action span {
+    line-height: 1.2;
+}
+
+/* === КАСТОМНЫЙ СКРОЛЛБАР === */
+.dashboard-sidebar::-webkit-scrollbar,
+.activity-list::-webkit-scrollbar,
+.card-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.dashboard-sidebar::-webkit-scrollbar-track,
+.activity-list::-webkit-scrollbar-track,
+.card-body::-webkit-scrollbar-track {
+    background: #f1f3f4;
+}
+
+.dashboard-sidebar::-webkit-scrollbar-thumb,
+.activity-list::-webkit-scrollbar-thumb,
+.card-body::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 3px;
+}
+
+.dashboard-sidebar::-webkit-scrollbar-thumb:hover,
+.activity-list::-webkit-scrollbar-thumb:hover,
+.card-body::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+}
+
+/* === КНОПКА МОБИЛЬНОГО МЕНЮ === */
+.mobile-menu-btn {
+    display: none;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: white;
+    border-radius: 8px;
+    color: #2d3748;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+}
+
+.mobile-menu-btn:hover {
+    background: #f8f9fa;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 1024px) {
+    .mobile-menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+/* === АДАПТИВНОСТЬ === */
+@media (max-width: 1200px) {
+    .dashboard-sidebar {
+        max-height: none;
+        order: -1;
+    }
+    
+    .sidebar-card {
+        max-height: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .stat-card {
+        padding: 20px;
+        text-align: center;
+    }
+    
+    .stat-icon {
+        margin: 0 auto 12px;
+    }
+    
+    .dashboard-sidebar {
+        gap: 16px;
+    }
+    
+    .card-header,
+    .card-body,
+    .card-footer {
+        padding: 16px 20px;
+    }
+    
+    .quick-actions-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .chart-container {
+        height: 250px;
+    }
+    
+    .chart-container-small {
+        height: 180px;
+    }
+}
+
+@media (max-width: 480px) {
+    .stat-card {
+        padding: 16px;
+    }
+    
+    .card-header,
+    .card-body,
+    .card-footer {
+        padding: 12px 16px;
+    }
+    
+    .activity-item {
+        padding: 8px 0;
+    }
+    
+    .quick-action {
+        padding: 12px 8px;
+        font-size: 11px;
+    }
+}
+
+/* === АНИМАЦИИ === */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Анимация появления элементов */
+.stat-card,
+.dashboard-card,
+.sidebar-card {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.stat-card:nth-child(1) { animation-delay: 0.1s; }
+.stat-card:nth-child(2) { animation-delay: 0.2s; }
+.stat-card:nth-child(3) { animation-delay: 0.3s; }
+.stat-card:nth-child(4) { animation-delay: 0.4s; }
+
+.activity-item {
+    animation: slideIn 0.4s ease-out;
+}
+
+.activity-item:nth-child(1) { animation-delay: 0.1s; }
+.activity-item:nth-child(2) { animation-delay: 0.2s; }
+.activity-item:nth-child(3) { animation-delay: 0.3s; }
+.activity-item:nth-child(4) { animation-delay: 0.4s; }
+
+/* === УЛУЧШЕНИЯ UX === */
+.table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.btn {
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+/* === МОБИЛЬНАЯ КНОПКА БЫСТРЫХ ДЕЙСТВИЙ === */
+.position-fixed .btn-primary {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+.position-fixed .btn-primary:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* === ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ДЛЯ СОВМЕСТИМОСТИ === */
+.text-primary { color: #6c5ce7 !important; }
+.text-success { color: #00b894 !important; }
+.text-warning { color: #fdcb6e !important; }
+.text-danger { color: #e17055 !important; }
+.text-info { color: #74b9ff !important; }
+
+.bg-primary { background-color: #6c5ce7 !important; }
+.bg-success { background-color: #00b894 !important; }
+.bg-warning { background-color: #fdcb6e !important; }
+.bg-danger { background-color: #e17055 !important; }
+.bg-info { background-color: #74b9ff !important; }
+
+/* === CSS ПЕРЕМЕННЫЕ ДЛЯ ПОДДЕРЖКИ === */
+:root {
+    --bs-primary: #6c5ce7;
+    --bs-success: #00b894;
+    --bs-warning: #fdcb6e;
+    --bs-danger: #e17055;
+    --bs-info: #74b9ff;
+    --bs-gray-100: #f8f9fa;
+    --bs-gray-200: #e9ecef;
+    --bs-gray-300: #dee2e6;
+    --bs-gray-400: #ced4da;
+    --bs-gray-500: #adb5bd;
+    --bs-gray-600: #6c757d;
+    --bs-gray-700: #495057;
+    --bs-gray-800: #343a40;
+    --bs-gray-900: #212529;
+}
